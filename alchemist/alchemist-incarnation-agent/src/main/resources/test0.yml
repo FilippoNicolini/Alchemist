@@ -1,0 +1,20 @@
+# Ping Pong all'interno di un nodo
+# Gli agenti Ping e Pong si scambiano messaggi e l'agente postman li recapita
+incarnation: agent
+
+network-model:
+  type: ConnectWithinDistance
+  parameters: [10]
+
+displacements:
+  - in: {type: Circle, parameters: [1,0,0,2]}
+    programs:
+      -
+        - time-distribution: 1
+          program: "ping_agent"
+
+        - time-distribution: 1
+          program: "pong_agent"
+
+        - time-distribution: 1
+          program: "postman"

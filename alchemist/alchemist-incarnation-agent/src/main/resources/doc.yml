@@ -1,0 +1,29 @@
+# tipo di incarnazione
+incarnation: agent
+
+network-model:
+  type: EuclideanDistance #type: Continuous2DEnvironment
+  parameters: [10]
+
+# disposizione dei nodi (è una lista di parametri 'in')
+displacements:
+# definisce quanti agenti verranno creati e la loro disposizione nel mondo
+- in: {type: Circle, parameters: [5,0,0,2]} #{type: Point, parameters: [0,0]}
+  # definisce quali reazioni saranno collegate ad ogni nodo creato nel displacemente definito sopra
+  programs:
+  -
+    # questa è la creazione di una reazine
+    - time-distribution: 1
+      # passa alla creazione della reazione il parametro "reactionParam"
+      program: "reactionParam"
+      # oppure
+
+      # crea la reazione con un azione di tipo CounterAction?? {verificare}
+      #type: Event
+      #actions:
+      #  - type: CounterAction
+    # --------------------------------------------------------
+    # qui posso definre un'altra reazione da associare al nodo
+    # -
+# -----------------------------------------------------------------------
+# qui posso definire un altro displacement a cui collegare altre reazioni

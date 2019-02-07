@@ -1,0 +1,27 @@
+# Ping Pong nello spazio
+# Gli agenti Ping e Pong (posti in nodi diversi) si scambiano messaggi e l'agente postman (posizionato in un terzo nodo) li recapita
+
+incarnation: agent
+
+network-model:
+  type: ConnectWithinDistance
+  parameters: [10]
+
+displacements:
+  - in: {type: Circle, parameters: [1,0,0,2]}
+    programs:
+      -
+        - time-distribution: 1
+          program: "ping_agent"
+
+  - in: {type: Circle, parameters: [1,0,0,2]}
+    programs:
+      -
+        - time-distribution: 1
+          program: "pong_agent"
+
+  - in: {type: Circle, parameters: [1,0,0,2]}
+    programs:
+      -
+        - time-distribution: 1
+          program: "postman"
