@@ -9,6 +9,7 @@ import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule;
 import it.unibo.alchemist.model.implementations.nodes.AgentsContainerNode;
 import it.unibo.alchemist.model.implementations.reactions.AgentReaction;
 import it.unibo.alchemist.model.implementations.timedistributions.DiracComb;
+import it.unibo.alchemist.model.implementations.times.DoubleTime;
 import it.unibo.alchemist.model.interfaces.*;
 
 import org.apache.commons.math3.random.RandomGenerator;
@@ -18,6 +19,8 @@ import org.apache.commons.math3.random.RandomGenerator;
 public class AgentIncarnation<P extends Position<? extends P>> implements Incarnation<Object, P> {
 
     private final static String POSTMAN_AGENT_NAME = "postman";
+    private boolean flag = false;
+    private int angle = 45;
 
     @Override
     public double getProperty(final Node<Object> node, final Molecule mol, final String prop) {
@@ -36,17 +39,24 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
 
     @Override
     public Node<Object> createNode(final RandomGenerator rand, final Environment<Object,P> env, final String param) {
-        final Node<Object> node = new AgentsContainerNode(param, (Environment<Object, Position<? extends Continuous2DEnvironment>>) env);
-
-        System.out.println("Nodo: " + node.getId() + " || createNode || param: " + param + "\n");
+        final AgentsContainerNode node = new AgentsContainerNode(param, (Environment<Object, Position<? extends Continuous2DEnvironment>>) env);
+        // -----------ONLY FOR TESTING-------
+//        node.changeDirectionAngle(this.angle, false, new DoubleTime());
+//        System.out.println("Nodo: " + node.getId() + " || createNode || " + this.angle);//|| param: " + param + "\n");
+//        if (flag) {
+//            this.angle += 45;
+//        } else {
+//            this.angle += 100;
+//        }
+//        this.flag = !this.flag;
+        // -----------ONLY FOR TESTING-------
         return node;
     }
 
     @Override
     public TimeDistribution<Object> createTimeDistribution(final RandomGenerator rand, final Environment<Object, P> env, final Node<Object> node, final String param) {
         System.out.println("Nodo: " + node.getId() + " || createTimeDistribution || param: " + param + "\n");
-        return new DiracComb<>(Double.parseDouble(param)); // generate a dirac comb with a value (that can be also random with rand.nextVal())
-
+        return new DiracComb<>(Double.parseDouble(param)); // Generates a dirac comb with a value (random or taken from config)
     }
 
     @Override
@@ -54,11 +64,11 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
         System.out.println("Nodo: " + node.getId() + " || createReaction || param: " + param + "\n");
 
         final Reaction<Object> reaction = new AgentReaction(param, node, time);
-        final Condition<Object> condition = createCondition(rand, env, node, time, reaction, param); // create condition
-        final Action<Object> action = createAction(rand, env, node, time, reaction, param); // create action
+        final Condition<Object> condition = createCondition(rand, env, node, time, reaction, param); // Create condition
+        final Action<Object> action = createAction(rand, env, node, time, reaction, param); // Create action
 
-        ((SimpleAgentAction) action).setAgentReaction(reaction); // set reaction reference to the action
-        ((AgentsContainerNode) node).addAgent((SimpleAgentAction) action); // add the agent to the map of the node
+        ((SimpleAgentAction) action).setAgentReaction(reaction); // Set reaction reference to the action
+        ((AgentsContainerNode) node).addAgent((SimpleAgentAction) action); // Add the agent to the map of the node
 
         reaction.setConditions(Lists.newArrayList(condition));
         reaction.setActions(Lists.newArrayList(action));
@@ -72,7 +82,8 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
         return new AbstractCondition<Object>(node) {
             @Override
             public Context getContext() {
-                return Context.NEIGHBORHOOD; // define the depth of an action and it affects the performances
+                // Defines the depth of an action and it affects the performances
+                return Context.NEIGHBORHOOD;// TODO va bene come profondità?
             }
 
             @Override
@@ -95,7 +106,7 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
         if (POSTMAN_AGENT_NAME.equals(param)) {
             action = new PostmanAction(param, node);
         } else {
-            action = new SimpleAgentAction(param, node); // TODO per adesso ping e pong hanno comportamento identico cambia solo il nome
+            action = new SimpleAgentAction(param, node); // Ping and Pong agents are built with the same class
         }
         return action;
     }
