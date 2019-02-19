@@ -7,21 +7,32 @@ import it.unibo.alchemist.model.interfaces.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.stream.Collectors;
+import java.lang.Double;
+import java.util.*;
 
 public class SimpleAgentAction extends AbstractAction<Object> {
 
+    private final static String BASE_THEORY = "agent_library";
+
+    // Messages
+    private final static String IO_MSG = "Failed reading agent's theory file.";
+    private final static String INVALID_THEORY_MSG = "Theory not valid.";
+    private final static String MALFORMED_GOAL_MSG = "Malformed goal";
+    private final static String NO_SOLUTION_MSG = "No solution for goal";
+    private final static String UNKNOWN_VAR_MSG = "Error retrieving the term in the solution of goal";
+    private final static String NO_MORE_SOLUTION_MSG = "Error retrieving next solution of goal";
+    private final static String SEPARATOR = " || ";
+    private final static String SUCCESS_PLAN = "plan done successfully.";
+    private final static String TRIGGERED_PLAN = "Triggered plan";
+    private final static String NO_IMPLEMENTATION_FOUND = "No implementation found for ";
+
     private final String agentName; // String for the agent name
     private boolean isInitialized = false; // Flag for init of the agent
-    private Queue<InMessage> inbox = new LinkedList<>(); // Mailbox IN queue
-    private Queue<OutMessage> outbox = new LinkedList<>(); // Mailbox OUT queue
-    private Prolog engine = new Prolog(); // tuProlog engine
-    private Reaction<Object> agentReaction; // Reference to reaction
+    private final Queue<InMessage> inbox = new LinkedList<>(); // Mailbox IN queue
+    private final Queue<OutMessage> outbox = new LinkedList<>(); // Mailbox OUT queue
+    private final Prolog engine = new Prolog(); // tuProlog engine
+    private Reaction agentReaction; // Reference to reaction
+    private final Map<Term,String> knowledgeBaseChanges = new LinkedHashMap<>();
 
     public SimpleAgentAction(final String name, final Node<Object> node) {
         super(node);
@@ -30,18 +41,19 @@ public class SimpleAgentAction extends AbstractAction<Object> {
         // Loads the theory only if the agent isn't the postman
         if (!"postman".equals(this.agentName)) {
             try {
-                this.engine.setTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + getAgentName() + ".pl"))));
+                this.engine.setTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + BASE_THEORY + ".pl"))));
+                this.engine.addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + getAgentName() + ".pl"))));
             } catch (IOException e) {
-                System.err.println("Fail reading file of agent " + getAgentName());
+                System.err.println(getAgentName() + SEPARATOR + IO_MSG);
             } catch (InvalidTheoryException e) {
-                System.err.println("The agent theory " + getAgentName() + " is not valid.");
+                System.err.println(getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
             }
         }
     }
 
     @Override
     public Action<Object> cloneAction(final Node<Object> n, final Reaction<Object> r) {
-        return null; // TODO come implementare?
+        return new SimpleAgentAction("cloned_" + getAgentName(),getNode());
     }
 
     @Override
@@ -61,16 +73,8 @@ public class SimpleAgentAction extends AbstractAction<Object> {
         return agentName;
     }
 
-    public void addToOutbox(final OutMessage m) {
-        this.outbox.add(m);
-    }
-
-    public boolean inboxIsEmpty() {
+    private boolean inboxIsEmpty() {
         return this.inbox.size() == 0;
-    }
-
-    public InMessage takeFromInbox() {
-        return this.inbox.poll();
     }
 
     public void setAgentReaction(final Reaction reaction) {
@@ -80,100 +84,101 @@ public class SimpleAgentAction extends AbstractAction<Object> {
     @Override
     public void execute() {
         if (!this.isInitialized()) {
-            // Set the name of the agent
-            final Struct self = new Struct("self", new Struct(getAgentName()));
-
-            // Initialize the agent
-            // (get the theory manager and add a struct to the top)
-            this.engine.getTheoryManager().assertA(self, true, null, false); // use always these last three parameters
-
-            // Updates the initialization flag
-            this.setInitialized();
+            this.inizializeAgent();
 
             System.out.println("Nodo: " + getNode().getId() + " || agent " + getAgentName() + " inizializzato");
             try {
                 // Computes the init (e.g. In ping/pong problem send the first message).
                 final SolveInfo init = this.engine.solve("init.");
-
                 if (init.isSuccess()) {
-                    this.hanldeOutGoingMessages();
+                    System.out.println(getAgentName() + SEPARATOR + "init " + SUCCESS_PLAN);
+                } else {
+                    System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " init.");
                 }
+                this.hanldeOutGoingMessages();
             } catch (MalformedGoalException e) {
-                System.err.println("Fail to solve 'init' for the agent " + getAgentName());
+                System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " init.");
             }
         } else {
             //Agent's reasoning cycle
 
-            // (1) Handles incoming messages
+            // Handles incoming messages
             this.handleIncomingMessages();
 
-            //this.timeLossSimulation(0);
+            //if (getAgentName().equals("ping_agent"))
+            // Updates node position (invokes plan 'onPositionUpdated')
+            this.positionUpdate();
 
-            // Moves the node
-            ((AgentsContainerNode) getNode()).changeNodePosition(this.agentReaction.getTau());
+            // Notify Knowledge Base changes
+            this.notifyKnowledgeBaseChanges();
 
-            // (2) Checks plan in the theory
-            try {
-                // (2.1) Receiving messages
-                final SolveInfo receive = this.engine.solve("receive.");
-                if (receive.isSuccess()) {
-                    System.out.println("Agent " + getAgentName() + " has received message successfully || " + this.agentReaction.getTau().toDouble());
-                }
-            } catch (MalformedGoalException e) {
-                System.err.println("Fail to solve 'receive' in reasoning cycle for the agent " + getAgentName());
-            }
+            // Receives message (invokes plan 'onReceivedMessage(S,M)')
+            this.getMessage();
 
-            try {
-                // (2.2) Perceives the environment
-                // Verifies node position and eventually change direction
-                final Position currPos = ((AgentsContainerNode)getNode()).getNodePosition();
-                final SolveInfo checkPos = this.engine.solve("checkPosition(" + currPos.getCoordinate(0) + "," + currPos.getCoordinate(1) + ").");
-                if (checkPos.isSuccess()) {
-                    try {
-                        // Checks if limits have been reached
-                        SolveInfo limits = this.engine.solve("retract(reachedLimit(X)).");
-                        while (limits != null && limits.isSuccess()) {
-                            /* Possible values of X:
-                             * - T: reached upper limit
-                             * - R: reached right limit
-                             * - B: reached bottom limit
-                             * - L: reached left limit
-                             */
-                            System.out.println(this.getAgentName() + " reached limit: " + limits.getTerm("X") + "");
-                            ((AgentsContainerNode) getNode()).changeDirectionAngle((int)(Math.random()*360), true, this.agentReaction.getTau()); // TODO modificare la direzione in modo sensato
-                            if (limits.hasOpenAlternatives()) {
-                                limits = this.engine.solveNext();
-                            } else {
-                                limits = null;
-                            }
-                        }
-                    } catch (MalformedGoalException e) {
-                        System.err.println("Fail to solve 'reachedLimit' in reasoning cycle for the agent " + getAgentName());
-                    } catch (NoSolutionException e) {
-                        System.err.println("Impossible get the solution of 'reachedLimit' for the agent " + getAgentName());
-                    } catch (UnknownVarException e) {
-                        System.err.println("Impossible get the term in the solution of 'reachedLimit' for the agent " + getAgentName());
-                    } catch (NoMoreSolutionException e) {
-                        System.err.println("Impossible get the next solution of 'reachedLimit' for the agent " + getAgentName());
-                    }
-                }
-            } catch (MalformedGoalException e) {
-                System.err.println("Fail to solve 'checkPosition' in reasoning cycle for the agent " + getAgentName());
-            }
+            // Gets knowledge base changes
+            this.getKnowledgeBaseChanges();
 
-            // (3) Handles outgoing messages
+            // Handles outgoing messages
             this.hanldeOutGoingMessages();
+        }
+    }
+
+    //------------------------------------------
+    // Agent's internal action
+    //------------------------------------------
+
+    /**
+     * Initilizes the agent (puts in the theory his name).
+     */
+    private void inizializeAgent() {
+        // Prepares the Struct with the name of the agent
+        final Struct self = new Struct("self", Term.createTerm(getAgentName()));
+
+        // Sets the agent name with belief 'self'
+        this.engine.getTheoryManager().assertA(self, true, null, false);
+
+        final Position nodePosition = ((AgentsContainerNode)getNode()).getNodePosition();
+        final Struct position = new Struct(
+                "position",
+                Term.createTerm(Double.toString(nodePosition.getCoordinate(0))),
+                Term.createTerm(Double.toString(nodePosition.getCoordinate(1))));
+
+        final Struct movement = new Struct(
+                "movement",
+                Term.createTerm(((AgentsContainerNode)getNode()).getNodeSpeed().toString()),
+                Term.createTerm(((AgentsContainerNode)getNode()).getNodeDirectionAngle().toString()));
+
+        // Sets the agent position
+        this.engine.getTheoryManager().assertA(position, true, null, false);
+
+        // Sets the agent movement
+        this.engine.getTheoryManager().assertA(movement, true, null, false);
+
+        // Updates the initialization flag
+        this.setInitialized();
+    }
+
+    /**
+     * Inserts messages received into the theory
+     */
+    private void handleIncomingMessages() {
+        while (!this.inboxIsEmpty()) {
+            final InMessage msg = this.inbox.poll();
+            if (Objects.nonNull(msg)) {
+                final Struct incoming = new Struct("ingoing", msg.getSender(),msg.getPayload());
+                this.engine.getTheoryManager().assertZ(incoming, true, null, false);
+            }
         }
     }
 
     /**
      * Prepares messages to send
      */
-    public void hanldeOutGoingMessages() {
+    private void hanldeOutGoingMessages() {
         try {
             SolveInfo outgoing = this.engine.solve("retract(outgoing(S,R,M)).");
             while (outgoing != null && outgoing.isSuccess()) {
-                this.addToOutbox(new OutMessage(outgoing.getTerm("S"), outgoing.getTerm("R"), outgoing.getTerm("M")));
+                this.outbox.add(new OutMessage(outgoing.getTerm("S"), outgoing.getTerm("R"), outgoing.getTerm("M")));
                 if (outgoing.hasOpenAlternatives()) {
                     outgoing = this.engine.solveNext();
                 } else {
@@ -181,96 +186,218 @@ public class SimpleAgentAction extends AbstractAction<Object> {
                 }
             }
         } catch (MalformedGoalException e) {
-            System.err.println("Fail to solve 'outgoing' for the agent " + getAgentName());
+            System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " outgoing.");
         } catch (NoSolutionException e) {
-            System.err.println("Impossible get the solution of 'outgoing' for the agent " + getAgentName());
+            System.err.println(getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " outgoing.");
         } catch (UnknownVarException e) {
-            System.err.println("Impossible get the term in the solution of 'outgoing' for the agent " + getAgentName());
+            System.err.println(getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " outgoing.");
         } catch (NoMoreSolutionException e) {
-            System.err.println("Impossible get the next solution of 'outgoing' for the agent " + getAgentName());
+            System.err.println(getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " outgoing.");
         }
     }
 
     /**
-     * Inserts messages received into the theory
+     * Solve receive plan.
      */
-    public void handleIncomingMessages() {
-        while (!this.inboxIsEmpty()) {
-            final InMessage msg = this.takeFromInbox();
-            final Struct incoming = new Struct("ingoing", msg.getSender(),msg.getPayload());
-            // (get the theory manager and add a struct to the bottom)
-            this.engine.getTheoryManager().assertZ(incoming, true, null, false); // use always the last three parameters
+    private void getMessage() {
+        try {
+            final SolveInfo receive = this.engine.solve("receiveMessage.");
+            if (receive.isSuccess()) {
+                System.out.println(getAgentName() + SEPARATOR + "receiveMessage " + SUCCESS_PLAN + SEPARATOR + this.agentReaction.getTau().toDouble());
+            }
+        } catch (MalformedGoalException e) {
+            System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " receiveMessage.");
         }
     }
+
+    /**
+     * Takes changes to the knowledge base occurred in the reasoning cycle.
+     */
+    private void getKnowledgeBaseChanges() {
+        try {
+            // Gets added beliefs
+            try {
+                SolveInfo insertBelief = this.engine.solve("retract(added_belief(B)).");
+                while (insertBelief != null && insertBelief.isSuccess()) {
+                    this.knowledgeBaseChanges.put(insertBelief.getTerm("B"),"added");
+                    if (insertBelief.hasOpenAlternatives()) {
+                        insertBelief = this.engine.solveNext();
+                    } else {
+                        insertBelief = null;
+                    }
+                }
+            } catch (MalformedGoalException e) {
+                System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " added_belief.");
+            }
+
+            // Gets removed beliefs
+            try {
+                SolveInfo removeBelief = this.engine.solve("retract(removed_belief(B)).");
+                while (removeBelief != null && removeBelief.isSuccess()) {
+                    this.knowledgeBaseChanges.put(removeBelief.getTerm("B"),"removed");
+                    if (removeBelief.hasOpenAlternatives()) {
+                        removeBelief = this.engine.solveNext();
+                    } else {
+                        removeBelief = null;
+                    }
+                }
+            } catch (MalformedGoalException e) {
+                System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " removed_belief.");
+            }
+        } catch (NoSolutionException e) {
+            System.err.println(getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " addBelief/removeBelief.");
+        } catch (UnknownVarException e) {
+            System.err.println(getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " addBelief/removeBelief.");
+        } catch (NoMoreSolutionException e) {
+            System.err.println(getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " addBelief/removeBelief.");
+        }
+    }
+
+    /**
+     * Triggers events in the agent for changes to the knowledge base.
+     */
+    private void notifyKnowledgeBaseChanges() {
+        this.knowledgeBaseChanges.forEach((term, str) -> {
+            if(str.equals("added")) {
+                try {
+                    final SolveInfo onAdd = this.engine.solve("onAddBelief(" + term + ").");
+                    if (onAdd.isSuccess()) {
+                        System.out.println(getAgentName() + SEPARATOR + TRIGGERED_PLAN + " onAddBelief(" + term + ").");
+                    } else {
+                        System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " onAddBelief.");
+                    }
+                } catch (MalformedGoalException e) {
+                    System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " onAddBelief.");
+                }
+            } else {
+                try {
+                    final SolveInfo onRemove = this.engine.solve("onRemoveBelief(" + term + ").");
+                    if (onRemove.isSuccess()) {
+                        System.out.println(getAgentName() + SEPARATOR + TRIGGERED_PLAN + " onRemoveBelief(" + term + ").");
+                    } else {
+                        System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " onRemoveBelief.");
+                    }
+                } catch (MalformedGoalException e) {
+                    System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " onRemoveBelief.");
+                }
+            }
+        });
+        this.knowledgeBaseChanges.clear();
+    }
+
+    private void positionUpdate() {
+        // Before changing speed is necessary to consolidate the position of the node
+        ((AgentsContainerNode) getNode()).changeNodePosition(this.agentReaction.getTau());
+
+        // Updates the belief 'position' in the agent
+        try {
+            final SolveInfo oldPosition = this.engine.solve("retract(position(X,Y)).");
+            if (oldPosition.isSuccess()) {
+                final Position nodePosition = ((AgentsContainerNode)getNode()).getNodePosition();
+                final Struct newPosition = new Struct(
+                        "position",
+                        Term.createTerm(Double.toString(nodePosition.getCoordinate(0))),
+                        Term.createTerm(Double.toString(nodePosition.getCoordinate(1))));
+                this.engine.getTheoryManager().assertA(newPosition, true, null, false);
+            } else {
+                System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " position.");
+            }
+        } catch (MalformedGoalException e) {
+            System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " position.");
+        }
+
+        // Invokes the callback implemented in the agent
+        try {
+            final SolveInfo positionUpdated = this.engine.solve("onPositionUpdated.");
+            if (positionUpdated.isSuccess()) {
+                System.out.println(getAgentName() + SEPARATOR + TRIGGERED_PLAN + " onPositionUpdated.");
+            } else {
+                System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " onPositionUpdated.");
+            }
+        } catch (MalformedGoalException e) {
+            System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " onPositionUpdated.");
+        }
+
+        /*/ TEST -----------------------------//
+        try {
+            final SolveInfo pos = this.engine.solve("position(X,Y).");
+            if (pos.isSuccess()) {
+                System.out.println("POSITION: " + pos.getTerm("X") + ", " + pos.getTerm("Y"));
+            } else {
+                System.err.println("No position " + getAgentName());
+            }
+        } catch (MalformedGoalException e) {
+            System.err.println("Malformed goal 'position' for the agent " + getAgentName());
+        } catch (NoSolutionException e) {
+            System.err.println("No solution for goal 'position' for the agent " + getAgentName());
+        } catch (UnknownVarException e) {
+            System.err.println("Error retrieve term for goal 'position' for the agent " + getAgentName());
+        }
+        // TEST -----------------------------/*/
+
+        // Retrieves changes of speed and direction from the agent
+        try {
+            final SolveInfo movement = this.engine.solve("movement(S,D).");
+            ((AgentsContainerNode)getNode()).changeDirectionAngle(Integer.parseInt(movement.getTerm("D").toString()), false);
+            ((AgentsContainerNode)getNode()).changeNodeSpeed(Double.parseDouble(movement.getTerm("S").toString()));
+        } catch (MalformedGoalException e) {
+            System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " movement.");
+        } catch (NoSolutionException e) {
+            System.err.println(getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " movement.");
+        } catch (UnknownVarException e) {
+            System.err.println(getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " movement.");
+        }
+    }
+
+    //------------------------------------------
+    // Agent's external action
+    //------------------------------------------
 
     /**
      * Takes outgoing messages to send, clears the outbox and then returns messages
      * @return List<OutMessage>
      */
     public List<OutMessage> consumeOutgoingMessages() {
-        final List outMessages = new ArrayList<>(this.outbox);
+        final List<OutMessage> outMessages = new ArrayList<>(this.outbox);
         this.outbox.clear();
         return outMessages;
     }
 
     /**
-     * Takes the messages addressed to this agent and puts them in the incoming queue
-     * @param incomingMessages
+     * Add incoming message to the in mailbox
+     * @param incomingMessage message to add
      */
-    public void receiveIncomingMessages(final List<OutMessage> incomingMessages) {
-        final List tmpIncoming = new ArrayList<InMessage>();
-        final List filteredMessages = incomingMessages.stream().filter(msg -> msg.receiver.match(new Struct(getAgentName()))).collect(Collectors.toList());
-        if (filteredMessages.size() > 0) {
-            filteredMessages.forEach(msg -> {
-                tmpIncoming.add(new InMessage(((OutMessage) msg).sender, ((OutMessage) msg).payload));
-            });
-            this.inbox.addAll(tmpIncoming);
-        }
-        // compact version
-//        this.inbox.addAll(
-//                incomingMessages.stream()
-//                .filter(msg -> msg.getReceiver().match(new Struct(getAgentName())))
-//                .map(msg -> new InMessage(msg.getSender(),msg.getPayload()))
-//                .collect(Collectors.toList())
-//        );
+    public void addIncomingMessages(final OutMessage incomingMessage) {
+        this.inbox.add(new InMessage(incomingMessage.sender, incomingMessage.payload));
     }
-
-    // TODO only for testing
-    private void timeLossSimulation(final long period) {
-        long t1 = new Date().getTime();
-        while (new Date().getTime() + period <= t1) {
-            // do nothing..
-        }
-    }
-
 
     //------------------------------------------
-    // Class for definition of messages
+    // Class of messages
     //------------------------------------------
 
     /**
      * Defines an incoming message
      */
-    public static class InMessage {
+    private static class InMessage {
         private final Term sender;
         // private final Term receiver;
         private final Term payload;
 
         /**
          * Constructor for incoming messages
-         * @param sender
-         * @param payload
+         * @param sender sender of message
+         * @param payload content of message
          */
-        public InMessage(final Term sender, final Term payload) {
+        private InMessage(final Term sender, final Term payload) {
             this.sender = sender;
             this.payload = payload;
         }
 
-        public Term getSender() {
+        private Term getSender() {
             return sender;
         }
 
-        public Term getPayload() {
+        private Term getPayload() {
             return payload;
         }
     }
@@ -285,11 +412,11 @@ public class SimpleAgentAction extends AbstractAction<Object> {
 
         /**
          * Constructor for outgoing messages
-         * @param sender
-         * @param receiver
-         * @param payload
+         * @param sender sender of message
+         * @param receiver receiver of message
+         * @param payload content of message
          */
-        public OutMessage(final Term sender, final Term receiver, final Term payload) {
+        private OutMessage(final Term sender, final Term receiver, final Term payload) {
             this.sender = sender;
             this.receiver = receiver;
             this.payload = payload;

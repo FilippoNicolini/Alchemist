@@ -19,8 +19,6 @@ import org.apache.commons.math3.random.RandomGenerator;
 public class AgentIncarnation<P extends Position<? extends P>> implements Incarnation<Object, P> {
 
     private final static String POSTMAN_AGENT_NAME = "postman";
-    private boolean flag = false;
-    private int angle = 45;
 
     @Override
     public double getProperty(final Node<Object> node, final Molecule mol, final String prop) {
@@ -40,16 +38,6 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
     @Override
     public Node<Object> createNode(final RandomGenerator rand, final Environment<Object,P> env, final String param) {
         final AgentsContainerNode node = new AgentsContainerNode(param, (Environment<Object, Position<? extends Continuous2DEnvironment>>) env);
-        // -----------ONLY FOR TESTING-------
-//        node.changeDirectionAngle(this.angle, false, new DoubleTime());
-//        System.out.println("Nodo: " + node.getId() + " || createNode || " + this.angle);//|| param: " + param + "\n");
-//        if (flag) {
-//            this.angle += 45;
-//        } else {
-//            this.angle += 100;
-//        }
-//        this.flag = !this.flag;
-        // -----------ONLY FOR TESTING-------
         return node;
     }
 
@@ -63,7 +51,7 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
     public Reaction<Object> createReaction(final RandomGenerator rand, final Environment<Object, P> env, final Node<Object> node, final TimeDistribution<Object> time, final String param) {
         System.out.println("Nodo: " + node.getId() + " || createReaction || param: " + param + "\n");
 
-        final Reaction<Object> reaction = new AgentReaction(param, node, time);
+        final Reaction<Object> reaction = new AgentReaction(param + "React", node, time);
         final Condition<Object> condition = createCondition(rand, env, node, time, reaction, param); // Create condition
         final Action<Object> action = createAction(rand, env, node, time, reaction, param); // Create action
 

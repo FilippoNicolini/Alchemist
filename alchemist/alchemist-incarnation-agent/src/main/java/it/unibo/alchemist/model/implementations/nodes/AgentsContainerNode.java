@@ -7,22 +7,23 @@ import it.unibo.alchemist.model.interfaces.Environment;
 import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Time;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Simple node for Agent Incarnation
+ * Node for Agent Incarnation
  */
 public class AgentsContainerNode extends AbstractNode<Object> {
 
     private final String param;
     private final Environment<Object, Position<? extends Continuous2DEnvironment>> environment;
-    private Map<String, SimpleAgentAction> agents = new LinkedHashMap<>();
+    private final Map<String, SimpleAgentAction> agents = new LinkedHashMap<>();
 
-    private Integer directionAngle = 0; // [0-360] Direction zero means to point to the north
-    private Double speed = 0.01; // Speed zero means that the node is stopped
-    private Time lastPositionUpdateTau;
+    private Integer nodeDirectionAngle = 0; // [0-360] Direction zero means to point to the north
+    private Double nodeSpeed = 0.01; // Speed zero means that the node is stopped
+    private Time lastNodePositionUpdateTau;
 
     /**
      * Constructor for the agents container.
@@ -33,52 +34,47 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         super(env);
         this.environment = env;
         this.param = p;
-        this.lastPositionUpdateTau = new DoubleTime(); // Initialize the last update to time zero
+        this.lastNodePositionUpdateTau = new DoubleTime(); // Initialize the last update to time zero
         System.out.println("ENVIRONMENT CLASS: " + this.environment.getClass().toString());
     }
 
     @Override
     protected Object createT() {
-        // TODO è corretto?
-        return new AgentsContainerNode(this.param, this.environment);
+        return new AgentsContainerNode(this.param, this.environment); // TODO è corretto?
     }
 
-    // TODO verificare sincronizzazione per angolo e velocità in caso di più agenti nel nodo
-    public void changeDirectionAngle(final int angle, final boolean isDelta, final Time updateTau) {
-        // Before changing direction is necessary to consolidate the position of the node
-        this.changeNodePosition(updateTau);
+    public Integer getNodeDirectionAngle() {
+        return this.nodeDirectionAngle;
+    }
 
+    public Double getNodeSpeed() {
+        return this.nodeSpeed;
+    }
+
+    /**
+     * Get the current Position of the node in the environment
+     * @return
+     */
+    public Position getNodePosition() {
+        return this.environment.getPosition(this);
+    }
+
+    // TODO verificare sincronizzazione
+    public synchronized void changeDirectionAngle(final int angle, final boolean isDelta) {
         if (isDelta) {
-            this.directionAngle += angle;
-            if (this.directionAngle >= 360) {
-                this.directionAngle = this.directionAngle % 360;
-            }
+            this.nodeDirectionAngle += angle;
+            /*if (this.nodeDirectionAngle > 360) {
+                this.nodeDirectionAngle = this.nodeDirectionAngle % 360;
+            }*/
         } else {
-            this.directionAngle = angle;
+            this.nodeDirectionAngle = angle;
         }
     }
 
-    public Integer getDirectionAngle() {
-        return this.directionAngle;
+    // TODO verificare sincronizzazione
+    public synchronized void changeNodeSpeed(final double speed) {
+        this.nodeSpeed = speed;
     }
-
-    public void changeNodeSpeed(final double speed, final Time updateTau) {
-        // Before changing speed is necessary to consolidate the position of the node
-        this.changeNodePosition(updateTau);
-        this.speed = speed;
-    }
-
-    /*public String getParam() {
-        return param;
-    }*/
-
-    /*public Environment<Object, Position<? extends Continuous2DEnvironment>> getEnvironment() {
-        return environment;
-    }*/
-
-    /*public SimpleAgentAction getAgent(final String agentName) {
-        return this.agents.get(agentName);
-    }*/
 
     /**
      * Add agent reference to the map
@@ -103,22 +99,14 @@ public class AgentsContainerNode extends AbstractNode<Object> {
      */
     public void changeNodePosition(final Time updateTau) {
         final Position currentPosition = this.getNodePosition();
-        final double radAngle =  (90 - this.directionAngle) * Math.PI / 180; // convert degrees to radians (- 90 is the correction angle)
-        final double radius = (updateTau.toDouble() - this.lastPositionUpdateTau.toDouble()) * this.speed; // radius = space covered = time spent * speed
+        final double radAngle =  (90 - this.nodeDirectionAngle) * Math.PI / 180; // convert degrees to radians (- 90 is the correction angle)
+        final double radius = (updateTau.toDouble() - this.lastNodePositionUpdateTau.toDouble()) * this.nodeSpeed; // radius = space covered = time spent * speed
         final Number x = currentPosition.getCoordinate(0) + radius * Math.cos(radAngle);
         final Number y = currentPosition.getCoordinate(1) + radius * Math.sin(radAngle);
-        // TODO per calcolare la y si deve considerare la direzione dell'asse delle ascisse: se aumenta verso l'altro usare il +, altrimenti usare il -
+        // TODO per la y considerare la direzione dell'asse delle ordinate: se aumenta verso l'altro usare il +, altrimenti usare il -
 
         this.environment.moveNodeToPosition(this, this.environment.makePosition(x, y));
-        this.lastPositionUpdateTau = updateTau;
-    }
-
-    /**
-     * Get the current Position of the node in the environment
-     * @return
-     */
-    public Position getNodePosition() {
-        return this.environment.getPosition(this);
+        this.lastNodePositionUpdateTau = updateTau;
     }
 
     /**
@@ -126,27 +114,21 @@ public class AgentsContainerNode extends AbstractNode<Object> {
      */
     public void postman() {
         final Map<String, SimpleAgentAction> tmpAgentMap = new LinkedHashMap<>();
+        final List<SimpleAgentAction.OutMessage> outMessages = new ArrayList<>();
 
-        // Obtains, for each node in the environment, all its agents and places them on a single map
-        this.environment.getNodes().forEach(n -> {
-            tmpAgentMap.putAll(((AgentsContainerNode)n).getAgentsMap());
+        // For each node in the environment get all its agents
+        this.environment.getNodes().forEach(node -> {
+            tmpAgentMap.putAll(((AgentsContainerNode)node).getAgentsMap());
         });
 
-        // For each agent takes outgoing messages and sends them to recipients
+        // For each agent takes outgoing messages
         tmpAgentMap.forEach((agentName, agent) -> {
-            final List outMessages = agent.consumeOutgoingMessages();
-//            if (outMessages.size() > 0) {
-//                System.out.println("-----------------------------------------------");
-//                System.out.println("MESSAGE OUTCOMING FROM " + agentName);
-//                outMessages.forEach(m -> {
-//                    System.out.println(
-//                            "Sender: " + ((AgentAction.OutMessage) m).getSender() +
-//                                    " || Receiver: " + ((AgentAction.OutMessage) m).getReceiver() +
-//                                    " || Payload: " + ((AgentAction.OutMessage) m).getPayload()
-//                    );
-//                });
-//            }
-            tmpAgentMap.values().forEach(a -> a.receiveIncomingMessages(outMessages));
+            outMessages.addAll(agent.consumeOutgoingMessages());
+        });
+
+        // Send each message to the receiver
+        outMessages.forEach(message -> {
+            tmpAgentMap.get(message.getReceiver().toString()).addIncomingMessages(message);
         });
     }
 }

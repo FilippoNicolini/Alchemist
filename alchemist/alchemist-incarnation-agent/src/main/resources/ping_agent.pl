@@ -1,37 +1,34 @@
 field(5,5,-5,-5).
 
-init :- send('pong_agent','ping').
+init :-
+  sendMessage('pong_agent','ping').
 
-receive :-
-  retract(ingoing(S,M)),
-  handle(S,M).
+onReceivedMessage(S,pong) :-
+  sendMessage(S, ping).
 
-handle(S,pong) :-
-  send(S, ping).
-
-handle(_,go_away) :-
+onReceivedMessage(_,go_away) :-
   act(forward).
 
-send(R, M) :-
-  self(Sender),
-  assertz(outgoing(Sender,R, M)).
+onPositionUpdated :-
+  position(X,Y),
+  checkPosition(X,Y).
+
+checkPosition(X,Y) :-
+  isInFieldX(X),
+  isInFieldY(Y).
 
 isInFieldX(X) :-
   field(T,R,B,L),
   (
-    not (X =< R) -> asserta(reachedLimit('R'));
-    not (X >= L) -> asserta(reachedLimit('L'));
+    not (X =< R) -> retract(movement(S,D)), D1 is D + 50, asserta(movement(S,D1));
+    not (X >= L) -> retract(movement(S,D)), D1 is D - 80, asserta(movement(S,D1));
     true
   ).
 
 isInFieldY(Y) :-
   field(T,R,B,L),
   (
-    not (Y =< T) -> asserta(reachedLimit('T'));
-    not (Y >= B) -> asserta(reachedLimit('B'));
+    not (Y =< T) -> retract(movement(S,D)), D1 is D + 20, asserta(movement(S,D1));
+    not (Y >= B) -> retract(movement(S,D)), D1 is D - 100, asserta(movement(S,D1));
     true
   ).
-
-checkPosition(X,Y) :-
-  isInFieldX(X),
-  isInFieldY(Y).

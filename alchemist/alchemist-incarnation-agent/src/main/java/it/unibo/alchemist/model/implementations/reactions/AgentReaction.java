@@ -8,15 +8,15 @@ import it.unibo.alchemist.model.interfaces.Reaction;
 
 public class AgentReaction extends AbstractReaction<Object> {
 
-    private final String agentName;
+    private final String agentReactionName;
 
-    public AgentReaction(final String agentName, final Node node, final TimeDistribution<Object> time) {
+    public AgentReaction(final String agentReactionName, final Node node, final TimeDistribution<Object> time) {
         super(node, time);
-        this.agentName = agentName;
+        this.agentReactionName = agentReactionName;
     }
 
-    public String getAgentName() {
-        return this.agentName;
+    public String getAgentReactionName() {
+        return this.agentReactionName;
     }
 
     @Override
@@ -26,15 +26,11 @@ public class AgentReaction extends AbstractReaction<Object> {
 
     @Override
     public Reaction<Object> cloneOnNewNode(final Node<Object> node, final Time currentTime) {
-        return this.cloneReaction("cloned_" + this.getAgentName(), node, currentTime);
+        return new AgentReaction("cloned_" + this.getAgentReactionName(),node,getTimeDistribution());
     }
 
     @Override
     public double getRate() {
         return getTimeDistribution().getRate();
-    }
-
-    public Reaction<Object> cloneReaction(final String name, final Node<Object> node, final Time currentTime) {
-        return null; // TODO come implementare?
     }
 }
