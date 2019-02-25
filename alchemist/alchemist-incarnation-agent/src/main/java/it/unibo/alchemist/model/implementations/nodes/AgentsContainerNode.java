@@ -43,11 +43,11 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         return new AgentsContainerNode(this.param, this.environment); // TODO è corretto?
     }
 
-    public Integer getNodeDirectionAngle() {
+    public synchronized Integer getNodeDirectionAngle() {
         return this.nodeDirectionAngle;
     }
 
-    public Double getNodeSpeed() {
+    public synchronized Double getNodeSpeed() {
         return this.nodeSpeed;
     }
 
@@ -128,7 +128,29 @@ public class AgentsContainerNode extends AbstractNode<Object> {
 
         // Send each message to the receiver
         outMessages.forEach(message -> {
-            tmpAgentMap.get(message.getReceiver().toString()).addIncomingMessages(message);
+            tmpAgentMap.get(message.getReceiver().toString()).addIncomingMessage(message);
         });
+    }
+
+    /**
+     * Takes the agent name as input and return a Map with the distance from each agent in the environment
+     * @param agentName
+     * @return a map with distances from other agents
+     */
+    public Map<String,Double> getNeighborhoodDistances(final String agentName) {
+        final Map<String,Double> agentsDistances = new LinkedHashMap<>();
+
+        // For each neighbor node
+        this.environment.getNeighborhood(this).getNeighbors().forEach(node -> {
+            // Calculates the distance between nodes
+            final double distance = this.environment.getDistanceBetweenNodes(this,node);
+            // Sets the distance for each agent inside the node
+            ((AgentsContainerNode)node).getAgentsMap().keySet().forEach(strNeighborAgentName -> {
+                agentsDistances.put(strNeighborAgentName,distance);
+                // System.out.println("******Agent " + agentName + " is distance " + distance + " from agent " + strNeighborAgentName);
+            });
+        });
+
+        return agentsDistances;
     }
 }

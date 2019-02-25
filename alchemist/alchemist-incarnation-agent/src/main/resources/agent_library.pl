@@ -3,8 +3,8 @@ receiveMessage :-
   onReceivedMessage(S,M).
 
 sendMessage(R, M) :-
-  self(Sender),
-  assertz(outgoing(Sender,R, M)).
+  self(S),
+  assertz(outgoing(S,R, M)).
 
 addBelief(B) :-
   assertz(belief(B)),

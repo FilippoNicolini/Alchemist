@@ -4,6 +4,7 @@ dependencies {
     implementation project(':alchemist-implementationbase')
     implementation "com.google.guava:guava:$guavaVersion"
     implementation 'it.unibo.alice.tuprolog:tuprolog:3.3.0'
+    implementation 'org.json:json:20180813'
     testImplementation project(':alchemist-engine')
     testImplementation project(':alchemist-loading')
 }

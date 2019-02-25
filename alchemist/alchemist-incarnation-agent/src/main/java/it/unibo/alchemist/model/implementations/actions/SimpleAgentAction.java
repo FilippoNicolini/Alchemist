@@ -3,6 +3,8 @@ package it.unibo.alchemist.model.implementations.actions;
 import alice.tuprolog.*;
 import it.unibo.alchemist.model.implementations.nodes.AgentsContainerNode;
 import it.unibo.alchemist.model.interfaces.*;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,7 +34,7 @@ public class SimpleAgentAction extends AbstractAction<Object> {
     private final Queue<OutMessage> outbox = new LinkedList<>(); // Mailbox OUT queue
     private final Prolog engine = new Prolog(); // tuProlog engine
     private Reaction agentReaction; // Reference to reaction
-    private final Map<Term,String> knowledgeBaseChanges = new LinkedHashMap<>();
+    private final Map<Term,String> beliefBaseChanges = new LinkedHashMap<>();
 
     public SimpleAgentAction(final String name, final Node<Object> node) {
         super(node);
@@ -42,18 +44,18 @@ public class SimpleAgentAction extends AbstractAction<Object> {
         if (!"postman".equals(this.agentName)) {
             try {
                 this.engine.setTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + BASE_THEORY + ".pl"))));
-                this.engine.addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + getAgentName() + ".pl"))));
+                this.engine.addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + this.getAgentName() + ".pl"))));
             } catch (IOException e) {
-                System.err.println(getAgentName() + SEPARATOR + IO_MSG);
+                System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
             } catch (InvalidTheoryException e) {
-                System.err.println(getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
+                System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
             }
         }
     }
 
     @Override
     public Action<Object> cloneAction(final Node<Object> n, final Reaction<Object> r) {
-        return new SimpleAgentAction("cloned_" + getAgentName(),getNode());
+        return new SimpleAgentAction("cloned_" + this.getAgentName(),getNode());
     }
 
     @Override
@@ -86,39 +88,33 @@ public class SimpleAgentAction extends AbstractAction<Object> {
         if (!this.isInitialized()) {
             this.inizializeAgent();
 
-            System.out.println("Nodo: " + getNode().getId() + " || agent " + getAgentName() + " inizializzato");
+            System.out.println("Nodo: " + getNode().getId() + " || agent " + this.getAgentName() + " inizializzato");
             try {
                 // Computes the init (e.g. In ping/pong problem send the first message).
                 final SolveInfo init = this.engine.solve("init.");
                 if (init.isSuccess()) {
-                    System.out.println(getAgentName() + SEPARATOR + "init " + SUCCESS_PLAN);
+                    System.out.println(this.getAgentName() + SEPARATOR + "init " + SUCCESS_PLAN);
                 } else {
-                    System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " init.");
+                    System.err.println(this.getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " init.");
                 }
                 this.hanldeOutGoingMessages();
             } catch (MalformedGoalException e) {
-                System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " init.");
+                System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " init.");
             }
         } else {
             //Agent's reasoning cycle
 
-            // Handles incoming messages
             this.handleIncomingMessages();
-
-            //if (getAgentName().equals("ping_agent"))
-            // Updates node position (invokes plan 'onPositionUpdated')
-            this.positionUpdate();
-
-            // Notify Knowledge Base changes
-            this.notifyKnowledgeBaseChanges();
 
             // Receives message (invokes plan 'onReceivedMessage(S,M)')
             this.getMessage();
 
-            // Gets knowledge base changes
-            this.getKnowledgeBaseChanges();
+            this.positionUpdate();
 
-            // Handles outgoing messages
+            this.getBeliefBaseChanges();
+
+            this.notifyBeliefBaseChanges();
+
             this.hanldeOutGoingMessages();
         }
     }
@@ -131,28 +127,39 @@ public class SimpleAgentAction extends AbstractAction<Object> {
      * Initilizes the agent (puts in the theory his name).
      */
     private void inizializeAgent() {
-        // Prepares the Struct with the name of the agent
-        final Struct self = new Struct("self", Term.createTerm(getAgentName()));
+        // Prepares belief with the name of the agent
+        final Struct self = new Struct("self", Term.createTerm(this.getAgentName()));
 
-        // Sets the agent name with belief 'self'
+        // Sets 'self' in the theory of the agent
         this.engine.getTheoryManager().assertA(self, true, null, false);
 
+        // Node's starting position
         final Position nodePosition = ((AgentsContainerNode)getNode()).getNodePosition();
         final Struct position = new Struct(
-                "position",
-                Term.createTerm(Double.toString(nodePosition.getCoordinate(0))),
-                Term.createTerm(Double.toString(nodePosition.getCoordinate(1))));
+                "belief",
+                new Struct(
+                        "position",
+                        Term.createTerm(Double.toString(nodePosition.getCoordinate(0))),
+                        Term.createTerm(Double.toString(nodePosition.getCoordinate(1))))
+        );
 
+        // Node's initial speed and direction
         final Struct movement = new Struct(
-                "movement",
-                Term.createTerm(((AgentsContainerNode)getNode()).getNodeSpeed().toString()),
-                Term.createTerm(((AgentsContainerNode)getNode()).getNodeDirectionAngle().toString()));
+                "belief",
+                new Struct(
+                        "movement",
+                        Term.createTerm(((AgentsContainerNode)getNode()).getNodeSpeed().toString()),
+                        Term.createTerm(((AgentsContainerNode)getNode()).getNodeDirectionAngle().toString()))
+        );
 
-        // Sets the agent position
+        // Sets the node position
         this.engine.getTheoryManager().assertA(position, true, null, false);
 
-        // Sets the agent movement
+        // Sets the node movement
         this.engine.getTheoryManager().assertA(movement, true, null, false);
+
+        // Set the beliefs with the distance to other agents
+        this.agentsDistancesUpdate();
 
         // Updates the initialization flag
         this.setInitialized();
@@ -186,13 +193,13 @@ public class SimpleAgentAction extends AbstractAction<Object> {
                 }
             }
         } catch (MalformedGoalException e) {
-            System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " outgoing.");
+            System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " outgoing.");
         } catch (NoSolutionException e) {
-            System.err.println(getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " outgoing.");
+            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " outgoing.");
         } catch (UnknownVarException e) {
-            System.err.println(getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " outgoing.");
+            System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " outgoing.");
         } catch (NoMoreSolutionException e) {
-            System.err.println(getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " outgoing.");
+            System.err.println(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " outgoing.");
         }
     }
 
@@ -203,23 +210,45 @@ public class SimpleAgentAction extends AbstractAction<Object> {
         try {
             final SolveInfo receive = this.engine.solve("receiveMessage.");
             if (receive.isSuccess()) {
-                System.out.println(getAgentName() + SEPARATOR + "receiveMessage " + SUCCESS_PLAN + SEPARATOR + this.agentReaction.getTau().toDouble());
+                System.out.println(this.getAgentName() + SEPARATOR + this.agentReaction.getTau().toDouble() + SEPARATOR + "receiveMessage " + SUCCESS_PLAN);
             }
         } catch (MalformedGoalException e) {
-            System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " receiveMessage.");
+            System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " receiveMessage.");
         }
     }
 
     /**
-     * Takes changes to the knowledge base occurred in the reasoning cycle.
+     * Takes changes to the belief base occurred in the reasoning cycle.
      */
-    private void getKnowledgeBaseChanges() {
+    private void getBeliefBaseChanges() {
         try {
             // Gets added beliefs
             try {
                 SolveInfo insertBelief = this.engine.solve("retract(added_belief(B)).");
                 while (insertBelief != null && insertBelief.isSuccess()) {
-                    this.knowledgeBaseChanges.put(insertBelief.getTerm("B"),"added");
+                    // Puts beliefs in the map for the notification
+                    final Term currentBelief = insertBelief.getTerm("B");
+                    this.beliefBaseChanges.put(currentBelief,"added");
+
+                    // Updates node values of speed and direction (that are contained into the belief 'movement')
+                    final JSONObject jsonObj = new JSONObject(currentBelief.toJSON());
+                    if ("movement".equals(jsonObj.get("name"))) {
+                        final JSONArray args = (JSONArray) jsonObj.get("arg");
+                        // Speed
+                        final String speed = args.getJSONObject(0).get("value").toString();
+                        if (!((AgentsContainerNode)getNode()).getNodeSpeed().toString().equals(speed)) {
+                            //System.out.println(this.getAgentName() + SEPARATOR + "------------------SPEED DIFFERENT (Agent: " + speed + ", Node: " + ((AgentsContainerNode)getNode()).getNodeSpeed() + ")");
+                            ((AgentsContainerNode)getNode()).changeNodeSpeed(Double.parseDouble(speed));
+                        }
+
+                        // Direction
+                        final String direction = args.getJSONObject(1).get("value").toString();
+                        if (!((AgentsContainerNode)getNode()).getNodeDirectionAngle().toString().equals(direction)) {
+                            //System.out.println(this.getAgentName() + SEPARATOR + "------------------DIRECTION DIFFERENT (Agent: " + direction + ", Node: " + ((AgentsContainerNode)getNode()).getNodeDirectionAngle() + ")");
+                            ((AgentsContainerNode)getNode()).changeDirectionAngle(Integer.parseInt(direction), false);
+                        }
+                    }
+
                     if (insertBelief.hasOpenAlternatives()) {
                         insertBelief = this.engine.solveNext();
                     } else {
@@ -227,14 +256,14 @@ public class SimpleAgentAction extends AbstractAction<Object> {
                     }
                 }
             } catch (MalformedGoalException e) {
-                System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " added_belief.");
+                System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " added_belief.");
             }
 
             // Gets removed beliefs
             try {
                 SolveInfo removeBelief = this.engine.solve("retract(removed_belief(B)).");
                 while (removeBelief != null && removeBelief.isSuccess()) {
-                    this.knowledgeBaseChanges.put(removeBelief.getTerm("B"),"removed");
+                    this.beliefBaseChanges.put(removeBelief.getTerm("B"),"removed");
                     if (removeBelief.hasOpenAlternatives()) {
                         removeBelief = this.engine.solveNext();
                     } else {
@@ -242,111 +271,114 @@ public class SimpleAgentAction extends AbstractAction<Object> {
                     }
                 }
             } catch (MalformedGoalException e) {
-                System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " removed_belief.");
+                System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " removed_belief.");
             }
         } catch (NoSolutionException e) {
-            System.err.println(getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " addBelief/removeBelief.");
+            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " addBelief/removeBelief.");
         } catch (UnknownVarException e) {
-            System.err.println(getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " addBelief/removeBelief.");
+            System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " addBelief/removeBelief.");
         } catch (NoMoreSolutionException e) {
-            System.err.println(getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " addBelief/removeBelief.");
+            System.err.println(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " addBelief/removeBelief.");
         }
     }
 
     /**
-     * Triggers events in the agent for changes to the knowledge base.
+     * Triggers events in the agent for changes to the belief base.
      */
-    private void notifyKnowledgeBaseChanges() {
-        this.knowledgeBaseChanges.forEach((term, str) -> {
+    private void notifyBeliefBaseChanges() {
+        // For each copule of the map trigger plan 'onAddBelief(term)' or 'onRemoveBelief(term)' depending by the value of str
+        this.beliefBaseChanges.forEach((term, str) -> {
             if(str.equals("added")) {
                 try {
                     final SolveInfo onAdd = this.engine.solve("onAddBelief(" + term + ").");
                     if (onAdd.isSuccess()) {
-                        System.out.println(getAgentName() + SEPARATOR + TRIGGERED_PLAN + " onAddBelief(" + term + ").");
+                        System.out.println(this.getAgentName() + SEPARATOR + TRIGGERED_PLAN + " onAddBelief(" + term + ").");
                     } else {
-                        System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " onAddBelief.");
+                        System.err.println(this.getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " onAddBelief(" + term + ").");
                     }
                 } catch (MalformedGoalException e) {
-                    System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " onAddBelief.");
+                    System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " onAddBelief.");
                 }
             } else {
                 try {
                     final SolveInfo onRemove = this.engine.solve("onRemoveBelief(" + term + ").");
                     if (onRemove.isSuccess()) {
-                        System.out.println(getAgentName() + SEPARATOR + TRIGGERED_PLAN + " onRemoveBelief(" + term + ").");
+                        System.out.println(this.getAgentName() + SEPARATOR + TRIGGERED_PLAN + " onRemoveBelief(" + term + ").");
                     } else {
-                        System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " onRemoveBelief.");
+                        System.err.println(this.getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " onRemoveBelief(" + term + ").");
                     }
                 } catch (MalformedGoalException e) {
-                    System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " onRemoveBelief.");
+                    System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " onRemoveBelief.");
                 }
             }
         });
-        this.knowledgeBaseChanges.clear();
+        this.beliefBaseChanges.clear();
     }
 
+    /**
+     * Updates node location, notifies update and then overwrites distances from other agents.
+     */
     private void positionUpdate() {
-        // Before changing speed is necessary to consolidate the position of the node
         ((AgentsContainerNode) getNode()).changeNodePosition(this.agentReaction.getTau());
 
         // Updates the belief 'position' in the agent
         try {
-            final SolveInfo oldPosition = this.engine.solve("retract(position(X,Y)).");
+            final SolveInfo oldPosition = this.engine.solve("retract(belief(position(X,Y))).");
             if (oldPosition.isSuccess()) {
                 final Position nodePosition = ((AgentsContainerNode)getNode()).getNodePosition();
-                final Struct newPosition = new Struct(
+                final Struct positionBelief = new Struct(
                         "position",
                         Term.createTerm(Double.toString(nodePosition.getCoordinate(0))),
                         Term.createTerm(Double.toString(nodePosition.getCoordinate(1))));
+                final Struct newPosition = new Struct("belief",positionBelief);
+
                 this.engine.getTheoryManager().assertA(newPosition, true, null, false);
+                // Adds the position updating as a add belief notification
+                this.beliefBaseChanges.put(positionBelief,"added");
+
+                // Updates beliefs with the distance to other agents
+                this.agentsDistancesUpdate();
             } else {
-                System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " position.");
+                System.err.println(this.getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " position belief.");
             }
         } catch (MalformedGoalException e) {
-            System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " position.");
+            System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " position belief.");
         }
+    }
 
-        // Invokes the callback implemented in the agent
+    /**
+     * Updates distance from agent's node to all other agents
+     */
+    private void agentsDistancesUpdate() {
+        // Removes all previews distances
         try {
-            final SolveInfo positionUpdated = this.engine.solve("onPositionUpdated.");
-            if (positionUpdated.isSuccess()) {
-                System.out.println(getAgentName() + SEPARATOR + TRIGGERED_PLAN + " onPositionUpdated.");
-            } else {
-                System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " onPositionUpdated.");
+            SolveInfo removeDitancesBeliefs = this.engine.solve("retract(belief(distance(_,_))).");
+            while (removeDitancesBeliefs != null && removeDitancesBeliefs.isSuccess()) {
+                if (removeDitancesBeliefs.hasOpenAlternatives()) {
+                    removeDitancesBeliefs = this.engine.solveNext();
+                } else {
+                    removeDitancesBeliefs = null;
+                }
             }
         } catch (MalformedGoalException e) {
-            System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " onPositionUpdated.");
+            System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " to remove agents distances.");
+        } catch (NoMoreSolutionException e) {
+            System.err.println(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " to remove agents distances.");
         }
 
-        /*/ TEST -----------------------------//
-        try {
-            final SolveInfo pos = this.engine.solve("position(X,Y).");
-            if (pos.isSuccess()) {
-                System.out.println("POSITION: " + pos.getTerm("X") + ", " + pos.getTerm("Y"));
-            } else {
-                System.err.println("No position " + getAgentName());
-            }
-        } catch (MalformedGoalException e) {
-            System.err.println("Malformed goal 'position' for the agent " + getAgentName());
-        } catch (NoSolutionException e) {
-            System.err.println("No solution for goal 'position' for the agent " + getAgentName());
-        } catch (UnknownVarException e) {
-            System.err.println("Error retrieve term for goal 'position' for the agent " + getAgentName());
-        }
-        // TEST -----------------------------/*/
+        // Inserts the distances updated and triggers notification
+        ((AgentsContainerNode)getNode()).getNeighborhoodDistances(this.getAgentName()).forEach((strAgentName,distance) -> {
 
-        // Retrieves changes of speed and direction from the agent
-        try {
-            final SolveInfo movement = this.engine.solve("movement(S,D).");
-            ((AgentsContainerNode)getNode()).changeDirectionAngle(Integer.parseInt(movement.getTerm("D").toString()), false);
-            ((AgentsContainerNode)getNode()).changeNodeSpeed(Double.parseDouble(movement.getTerm("S").toString()));
-        } catch (MalformedGoalException e) {
-            System.err.println(getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " movement.");
-        } catch (NoSolutionException e) {
-            System.err.println(getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " movement.");
-        } catch (UnknownVarException e) {
-            System.err.println(getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " movement.");
-        }
+            final Struct distanceBelief = new Struct(
+                    "distance",
+                    Term.createTerm(strAgentName),
+                    Term.createTerm(distance.toString()));
+            final Struct newDistance = new Struct("belief", distanceBelief);
+
+            this.engine.getTheoryManager().assertA(newDistance, true, null, false);
+            // Adds the position updating as a add belief notification
+            this.beliefBaseChanges.put(distanceBelief,"added");
+        });
     }
 
     //------------------------------------------
@@ -367,7 +399,7 @@ public class SimpleAgentAction extends AbstractAction<Object> {
      * Add incoming message to the in mailbox
      * @param incomingMessage message to add
      */
-    public void addIncomingMessages(final OutMessage incomingMessage) {
+    public void addIncomingMessage(final OutMessage incomingMessage) {
         this.inbox.add(new InMessage(incomingMessage.sender, incomingMessage.payload));
     }
 
