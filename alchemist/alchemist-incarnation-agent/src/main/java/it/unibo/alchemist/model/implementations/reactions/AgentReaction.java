@@ -6,17 +6,22 @@ import it.unibo.alchemist.model.interfaces.Time;
 import it.unibo.alchemist.model.interfaces.TimeDistribution;
 import it.unibo.alchemist.model.interfaces.Reaction;
 
+/**
+ * Reaction of the agent.
+ */
 public class AgentReaction extends AbstractReaction<Object> {
 
     private final String agentReactionName;
 
-    public AgentReaction(final String agentReactionName, final Node node, final TimeDistribution<Object> time) {
+    /**
+     * Constructor for the reaction.
+     * @param agentReactionName name of the reaction.
+     * @param node node to which the reaction refers.
+     * @param time time distribution of the reaction.
+     */
+    public AgentReaction(final String agentReactionName, final Node<Object> node, final TimeDistribution<Object> time) {
         super(node, time);
         this.agentReactionName = agentReactionName;
-    }
-
-    public String getAgentReactionName() {
-        return this.agentReactionName;
     }
 
     @Override
@@ -26,7 +31,7 @@ public class AgentReaction extends AbstractReaction<Object> {
 
     @Override
     public Reaction<Object> cloneOnNewNode(final Node<Object> node, final Time currentTime) {
-        return new AgentReaction("cloned_" + this.getAgentReactionName(),node,getTimeDistribution());
+        return new AgentReaction("cloned_" + this.agentReactionName, node, getTimeDistribution());
     }
 
     @Override

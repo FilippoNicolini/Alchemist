@@ -1,5 +1,5 @@
-# Tuples space
-# Agents Alice and Bob (in different nodes) write, read or take messages from blackboard
+# Ping Pong nello spazio
+# Gli agenti Ping e Pong (posti in nodi diversi) si scambiano messaggi e l'agente postman (posizionato in un terzo nodo) li recapita
 
 incarnation: agent
 
@@ -12,22 +12,16 @@ displacements:
     programs:
       -
         - time-distribution: 1
-          program: "alice"
+          program: "ping_agent"
 
   - in: {type: Circle, parameters: [1,0,0,2]}
     programs:
       -
         - time-distribution: 1
-          program: "bob"
+          program: "pong_agent"
 
   - in: {type: Circle, parameters: [1,0,0,2]}
     programs:
       -
         - time-distribution: 1
-          program: "carl"
-
-  - in: {type: Circle, parameters: [1,0,0,2]}
-    programs:
-      -
-        - time-distribution: 1
-          program: "blackboard"
+          program: "postman"

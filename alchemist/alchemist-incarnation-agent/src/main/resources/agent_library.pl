@@ -13,3 +13,12 @@ addBelief(B) :-
 removeBelief(B) :-
   retract(belief(B)),
   assertz(removed_belief(B)).
+
+writeTuple(BB,T) :-
+  assertz(write(BB,T)).
+
+readTuple(BB,T) :-
+  assertz(read(BB,T)).
+
+takeTuple(BB,T) :-
+  assertz(take(BB,T)).

@@ -1,15 +1,16 @@
 package it.unibo.alchemist.model;
 
 import com.google.common.collect.Lists;
-import it.unibo.alchemist.model.implementations.actions.SimpleAgentAction;
-import it.unibo.alchemist.model.implementations.actions.PostmanAction;
+import it.unibo.alchemist.model.implementations.actions.AbstractAgent;
+import it.unibo.alchemist.model.implementations.actions.Blackboard;
+import it.unibo.alchemist.model.implementations.actions.SimpleAgent;
+import it.unibo.alchemist.model.implementations.actions.PostmanAgent;
 import it.unibo.alchemist.model.implementations.conditions.AbstractCondition;
 import it.unibo.alchemist.model.implementations.environments.Continuous2DEnvironment;
 import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule;
 import it.unibo.alchemist.model.implementations.nodes.AgentsContainerNode;
 import it.unibo.alchemist.model.implementations.reactions.AgentReaction;
 import it.unibo.alchemist.model.implementations.timedistributions.DiracComb;
-import it.unibo.alchemist.model.implementations.times.DoubleTime;
 import it.unibo.alchemist.model.interfaces.*;
 
 import org.apache.commons.math3.random.RandomGenerator;
@@ -19,6 +20,7 @@ import org.apache.commons.math3.random.RandomGenerator;
 public class AgentIncarnation<P extends Position<? extends P>> implements Incarnation<Object, P> {
 
     private final static String POSTMAN_AGENT_NAME = "postman";
+    private final static String BLACKBOARD_AGENT_NAME = "blackboard";
 
     @Override
     public double getProperty(final Node<Object> node, final Molecule mol, final String prop) {
@@ -37,8 +39,7 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
 
     @Override
     public Node<Object> createNode(final RandomGenerator rand, final Environment<Object,P> env, final String param) {
-        final AgentsContainerNode node = new AgentsContainerNode(param, (Environment<Object, Position<? extends Continuous2DEnvironment>>) env);
-        return node;
+        return new AgentsContainerNode(param, (Environment<Object, Position<? extends Continuous2DEnvironment>>) env);
     }
 
     @Override
@@ -55,8 +56,7 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
         final Condition<Object> condition = createCondition(rand, env, node, time, reaction, param); // Create condition
         final Action<Object> action = createAction(rand, env, node, time, reaction, param); // Create action
 
-        ((SimpleAgentAction) action).setAgentReaction(reaction); // Set reaction reference to the action
-        ((AgentsContainerNode) node).addAgent((SimpleAgentAction) action); // Add the agent to the map of the node
+        ((AgentsContainerNode) node).addAgent((AbstractAgent) action); // Add the agent to the map of the node
 
         reaction.setConditions(Lists.newArrayList(condition));
         reaction.setActions(Lists.newArrayList(action));
@@ -91,10 +91,12 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
         System.out.println("Nodo: " + node.getId() + " || createAction || param: " + param + "\n");
 
         Action<Object> action;
-        if (POSTMAN_AGENT_NAME.equals(param)) {
-            action = new PostmanAction(param, node);
+        if (param.contains(POSTMAN_AGENT_NAME)) {
+            action = new PostmanAgent(param, node);
+        } else if (param.contains(BLACKBOARD_AGENT_NAME)) {
+            action = new Blackboard(param, node);
         } else {
-            action = new SimpleAgentAction(param, node); // Ping and Pong agents are built with the same class
+            action = new SimpleAgent(param, node, reaction); // Ping and Pong agents are built with the same class
         }
         return action;
     }

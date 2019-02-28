@@ -1,9 +1,11 @@
 package it.unibo.alchemist.model.implementations.nodes;
 
-import it.unibo.alchemist.model.implementations.actions.SimpleAgentAction;
+import it.unibo.alchemist.model.implementations.actions.AbstractAgent;
+import it.unibo.alchemist.model.implementations.actions.SimpleAgent;
 import it.unibo.alchemist.model.implementations.environments.Continuous2DEnvironment;
 import it.unibo.alchemist.model.implementations.times.DoubleTime;
 import it.unibo.alchemist.model.interfaces.Environment;
+import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Time;
 
@@ -11,24 +13,25 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * Node for Agent Incarnation
+ * Node for Agent Incarnation.
  */
 public class AgentsContainerNode extends AbstractNode<Object> {
 
     private final String param;
     private final Environment<Object, Position<? extends Continuous2DEnvironment>> environment;
-    private final Map<String, SimpleAgentAction> agents = new LinkedHashMap<>();
+    private final Map<String, AbstractAgent> agents = new LinkedHashMap<>();
 
     private Integer nodeDirectionAngle = 0; // [0-360] Direction zero means to point to the north
-    private Double nodeSpeed = 0.01; // Speed zero means that the node is stopped
+    private Double nodeSpeed = 0.0; // Speed zero means that the node is stopped
     private Time lastNodePositionUpdateTau;
 
     /**
      * Constructor for the agents container.
-     * @param p is the param from the simulation configuration file
-     * @param env
+     * @param p is the param from the simulation configuration file.
+     * @param env environment of node.
      */
     public AgentsContainerNode(final String p, final Environment<Object, Position<? extends Continuous2DEnvironment>> env) {
         super(env);
@@ -40,7 +43,7 @@ public class AgentsContainerNode extends AbstractNode<Object> {
 
     @Override
     protected Object createT() {
-        return new AgentsContainerNode(this.param, this.environment); // TODO è corretto?
+        return new AgentsContainerNode(this.param, this.environment);
     }
 
     public synchronized Integer getNodeDirectionAngle() {
@@ -52,8 +55,8 @@ public class AgentsContainerNode extends AbstractNode<Object> {
     }
 
     /**
-     * Get the current Position of the node in the environment
-     * @return
+     * Get the current Position of the node in the environment.
+     * @return position of the node.
      */
     public Position getNodePosition() {
         return this.environment.getPosition(this);
@@ -77,18 +80,18 @@ public class AgentsContainerNode extends AbstractNode<Object> {
     }
 
     /**
-     * Add agent reference to the map
-     * @param agent
+     * Add agent reference to the map.
+     * @param agent agent to add to the map.
      */
-    public void addAgent(final SimpleAgentAction agent) {
+    public void addAgent(final AbstractAgent agent) {
         this.agents.put(agent.getAgentName(), agent);
     }
 
     /**
-     * Get the map that contains references of the agents
-     * @return
+     * Get the map that contains references of the agents.
+     * @return map of the agents.
      */
-    public Map<String, SimpleAgentAction> getAgentsMap() {
+    public Map<String, AbstractAgent> getAgentsMap() {
         return this.agents;
     }
 
@@ -110,15 +113,15 @@ public class AgentsContainerNode extends AbstractNode<Object> {
     }
 
     /**
-     * Called from postman agent. Collects outgoing messages from all agents and deliver them to recipients
+     * Called from postman agent. Collects outgoing messages from all agents and deliver them to recipients.
      */
     public void postman() {
-        final Map<String, SimpleAgentAction> tmpAgentMap = new LinkedHashMap<>();
-        final List<SimpleAgentAction.OutMessage> outMessages = new ArrayList<>();
+        final Map<String, AbstractAgent> tmpAgentMap = new LinkedHashMap<>();
+        final List<SimpleAgent.OutMessage> outMessages = new ArrayList<>();
 
         // For each node in the environment get all its agents
         this.environment.getNodes().forEach(node -> {
-            tmpAgentMap.putAll(((AgentsContainerNode)node).getAgentsMap());
+            tmpAgentMap.putAll(((AgentsContainerNode) node).getAgentsMap());
         });
 
         // For each agent takes outgoing messages
@@ -133,24 +136,40 @@ public class AgentsContainerNode extends AbstractNode<Object> {
     }
 
     /**
-     * Takes the agent name as input and return a Map with the distance from each agent in the environment
-     * @param agentName
-     * @return a map with distances from other agents
+     * Get a map with the distances from each agent in the environment.
+     * @return a map with distances from other agents.
      */
-    public Map<String,Double> getNeighborhoodDistances(final String agentName) {
-        final Map<String,Double> agentsDistances = new LinkedHashMap<>();
+    public Map<String, Double> getNeighborhoodDistances() {
+        final Map<String, Double> agentsDistances = new LinkedHashMap<>();
 
         // For each neighbor node
         this.environment.getNeighborhood(this).getNeighbors().forEach(node -> {
             // Calculates the distance between nodes
-            final double distance = this.environment.getDistanceBetweenNodes(this,node);
+            final double distance = this.environment.getDistanceBetweenNodes(this, node);
             // Sets the distance for each agent inside the node
-            ((AgentsContainerNode)node).getAgentsMap().keySet().forEach(strNeighborAgentName -> {
-                agentsDistances.put(strNeighborAgentName,distance);
-                // System.out.println("******Agent " + agentName + " is distance " + distance + " from agent " + strNeighborAgentName);
+            ((AgentsContainerNode) node).getAgentsMap().keySet().forEach(strNeighborAgentName -> {
+                agentsDistances.put(strNeighborAgentName, distance);
             });
         });
-
         return agentsDistances;
+    }
+
+    /**
+     * Retrieve the agent instance, using the agent name, if presents in the neighborhood.
+     * @param agentName the name of agent to find.
+     * @return agent instance or null.
+     */
+    public AbstractAgent getNeighborAgent(final String agentName) {
+        // For each neighbor node
+        List<Node<Object>> neighbor = this.environment.getNeighborhood(this).getNeighbors()
+                .stream()
+                .filter(node -> ((AgentsContainerNode) node).getAgentsMap().keySet().contains(agentName))
+                .collect(Collectors.toList());
+
+        if (neighbor.size() > 0) {
+            return ((AgentsContainerNode) neighbor.get(0)).getAgentsMap().get(agentName);
+        } else {
+            return null;
+        }
     }
 }
