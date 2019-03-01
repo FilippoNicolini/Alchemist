@@ -10,14 +10,15 @@ import alice.tuprolog.Struct;
 import alice.tuprolog.Term;
 import alice.tuprolog.Theory;
 import alice.tuprolog.UnknownVarException;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import it.unibo.alchemist.model.implementations.nodes.AgentsContainerNode;
 import it.unibo.alchemist.model.interfaces.Context;
 import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Reaction;
 import kotlin.Triple;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -281,19 +282,20 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                     this.beliefBaseChanges.put(currentBelief, ADD_NOTIFICATION);
 
                     // Updates node values of speed and direction (that are contained into the belief 'movement')
-                    final JSONObject jsonObj = new JSONObject(currentBelief.toJSON());
-                    if ("movement".equals(jsonObj.get("name"))) {
-                        final JSONArray args = (JSONArray) jsonObj.get("arg");
+
+                    final JsonObject jsonObject = new JsonParser().parse(currentBelief.toJSON()).getAsJsonObject();
+                    if ("movement".equals(jsonObject.get("name").getAsString())) {
+                        JsonArray jsonArray = jsonObject.get("arg").getAsJsonArray();
                         // Speed
-                        final String speed = args.getJSONObject(0).get("value").toString();
-                        if (!((AgentsContainerNode) getNode()).getNodeSpeed().toString().equals(speed)) {
-                            ((AgentsContainerNode) getNode()).changeNodeSpeed(Double.parseDouble(speed));
+                        final double speed = jsonArray.get(0).getAsJsonObject().get("value").getAsDouble();
+                        if (!((AgentsContainerNode) getNode()).getNodeSpeed().equals(speed)) {
+                            ((AgentsContainerNode) getNode()).changeNodeSpeed(speed);
                         }
 
                         // Direction
-                        final String direction = args.getJSONObject(1).get("value").toString();
-                        if (!((AgentsContainerNode) getNode()).getNodeDirectionAngle().toString().equals(direction)) {
-                            ((AgentsContainerNode) getNode()).changeDirectionAngle(Integer.parseInt(direction), false);
+                        final int direction = jsonArray.get(1).getAsJsonObject().get("value").getAsInt();
+                        if (!((AgentsContainerNode) getNode()).getNodeDirectionAngle().equals(direction)) {
+                            ((AgentsContainerNode) getNode()).changeDirectionAngle(direction, false);
                         }
                     }
 
