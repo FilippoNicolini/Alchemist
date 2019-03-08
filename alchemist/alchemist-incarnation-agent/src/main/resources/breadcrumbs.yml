@@ -1,0 +1,28 @@
+# Tuples space
+# Breadcrums. Agents Hansel and Gretel (in different nodes).
+# Hansel write messages about his position while Gretel try to reach him reading messages.
+
+incarnation: agent
+
+network-model:
+  type: ConnectWithinDistance
+  parameters: [100]
+
+displacements:
+  - in: {type: Circle, parameters: [1,0,0,5]}
+    programs:
+      -
+        - time-distribution: 1
+          program: "hansel"
+
+  - in: {type: Circle, parameters: [1,0,0,5]}
+    programs:
+      -
+        - time-distribution: 1
+          program: "gretel"
+
+  - in: {type: Circle, parameters: [1,0,0,5]}
+    programs:
+      -
+        - time-distribution: 1
+          program: "blackboard"
