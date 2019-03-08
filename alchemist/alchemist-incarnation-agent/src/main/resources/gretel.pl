@@ -16,6 +16,10 @@ onAddBelief(movement(_,_)) :-
 onRemoveBelief(movement(_,_)) :-
     true.
 
+onResponseMessage(stop(gretel)) :-
+    removeBelief(movement(_,D)),
+    addBelief(movement(0,D)).
+
 onResponseMessage(breadcrumb(hansel,X,Y)) :-
     checkDistance(hansel),
     calculateAngle(X,Y).
@@ -23,16 +27,12 @@ onResponseMessage(breadcrumb(hansel,X,Y)) :-
 checkDistance(A) :-
     belief(distance(A,D)),
     D > 0.3,
-    takeTuple(blackboard,breadcrumb(hansel,X1,Y1)).
+    takeTuple(blackboard,breadcrumb(hansel,X,Y)).
 
 checkDistance(A) :-
     belief(distance(A,D)),
     D < 0.3,
     writeTuple(blackboard,stop(hansel)).
-
-onResponseMessage(stop(gretel)) :-
-    removeBelief(movement(_,D)),
-    addBelief(movement(0,D)).
 
 calculateAngle(X2,Y2) :-
     belief(position(X1,Y1)),
@@ -44,20 +44,14 @@ calculateAngle(X2,Y2) :-
     changeDirection(DEG).
 
 checkPosition(X,Y) :-
-    checkX(X),
-    checkY(Y).
+    checkBoundingBox(X),
+    checkBoundingBox(Y).
 
-checkX(X,Y) :- X < -10, changeDirection(90).
+checkBoundingBox(X) :- X < -10, changeDirection(180).
 
-checkX(X,Y) :- X > 10, changeDirection(90).
+checkBoundingBox(X) :- X > 10, changeDirection(180).
 
-checkX(X,Y) :- X > -10, X < 10, true.
-
-checkY(X,Y) :- Y < -10, changeDirection(90).
-
-checkY(X,Y) :- Y > 10, changeDirection(90).
-
-checkX(X,Y) :- Y > -10, Y < 10, true.
+checkBoundingBox(X) :- X > -10, X < 10.
 
 changeDirection(A) :-
     removeBelief(movement(S,D)),

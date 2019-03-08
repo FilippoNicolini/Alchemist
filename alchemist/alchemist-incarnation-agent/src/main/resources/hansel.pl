@@ -23,23 +23,18 @@ onResponseMessage(stop(hansel)) :-
     writeTuple(blackboard,stop(gretel)).
 
 checkPosition(X,Y) :-
-    checkX(X,Y),
-    checkY(X,Y).
+    checkBoundingBox(X),
+    checkBoundingBox(Y),
+    writeTuple(blackboard,breadcrumb(hansel,X,Y)).
 
-checkX(X,Y) :- X < -10, changeDirection(90).
+checkBoundingBox(X) :- X < -10, changeDirection(180).
 
-checkX(X,Y) :- X > 10, changeDirection(90).
+checkBoundingBox(X) :- X > 10, changeDirection(180).
 
-checkX(X,Y) :- X > -10, X < 10, writeTuple(blackboard,breadcrumb(hansel,X,Y)).
-
-checkY(X,Y) :- Y < -10, changeDirection(90).
-
-checkY(X,Y) :- Y > 10, changeDirection(90).
-
-checkX(X,Y) :- Y > -10, Y < 10, writeTuple(blackboard,breadcrumb(hansel,X,Y)).
+checkBoundingBox(X) :- X > -10, X < 10.
 
 changeDirection(A) :-
     removeBelief(movement(S,D)),
-    D1 is D + A,
+    D1 is D - A,
     D2 is mod(D1,360),
     addBelief(movement(S,D2)).
