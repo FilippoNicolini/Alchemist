@@ -1,14 +1,31 @@
 init :-
-    belief(position(X,Y)),
-    writeTuple(blackboard,breadcrumb(hansel,X,Y)),
+    writeTuple(breadcrumb(hansel,here)),
     removeBelief(movement(S,D)),
-    addBelief(movement(0.02,D)),
-    takeTuple(blackboard,stop(hansel)).
+    addBelief(movement(0.022,0)),
+    addBelief(counter(0)),
+    takeTuple(stop(hansel)).
 
 onAddBelief(position(X,Y)) :-
-    checkPosition(X,Y).
+    removeBelief(counter(C)),
+    handlePosition(C,X,Y).
+
+handlePosition(C,X,Y) :-
+    C < 10,
+    C1 is C + 1,
+    addBelief(counter(C1)),
+    writeTuple(breadcrumb(hansel,here)).
+
+handlePosition(C,X,Y) :-
+    C >= 10,
+    addBelief(counter(0)),
+    removeBelief(movement(S,D)),
+    D1 is D + 0.2,
+    addBelief(movement(S,D1)).
 
 onAddBelief(distance(_,_)) :-
+    true.
+
+onAddBelief(distance(_,_,_)) :-
     true.
 
 onAddBelief(movement(_,_)) :-
@@ -17,24 +34,13 @@ onAddBelief(movement(_,_)) :-
 onRemoveBelief(movement(_,_)) :-
     true.
 
-onResponseMessage(stop(hansel)) :-
+onAddBelief(counter(C)) :-
+    true.
+
+onRemoveBelief(counter(C)) :-
+    true.
+
+onResponseMessage(msg(stop(hansel),X,Y)) :-
     removeBelief(movement(_,D)),
     addBelief(movement(0,D)),
-    writeTuple(blackboard,stop(gretel)).
-
-checkPosition(X,Y) :-
-    checkBoundingBox(X),
-    checkBoundingBox(Y),
-    writeTuple(blackboard,breadcrumb(hansel,X,Y)).
-
-checkBoundingBox(X) :- X < -10, changeDirection(180).
-
-checkBoundingBox(X) :- X > 10, changeDirection(180).
-
-checkBoundingBox(X) :- X > -10, X < 10.
-
-changeDirection(A) :-
-    removeBelief(movement(S,D)),
-    D1 is D - A,
-    D2 is mod(D1,360),
-    addBelief(movement(S,D2)).
+    writeTuple(stop(gretel)).

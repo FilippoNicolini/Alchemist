@@ -11,7 +11,18 @@ import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule;
 import it.unibo.alchemist.model.implementations.nodes.AgentsContainerNode;
 import it.unibo.alchemist.model.implementations.reactions.AgentReaction;
 import it.unibo.alchemist.model.implementations.timedistributions.DiracComb;
-import it.unibo.alchemist.model.interfaces.*;
+import it.unibo.alchemist.model.interfaces.Action;
+import it.unibo.alchemist.model.interfaces.Condition;
+import it.unibo.alchemist.model.interfaces.Context;
+import it.unibo.alchemist.model.interfaces.Environment;
+import it.unibo.alchemist.model.interfaces.Incarnation;
+import it.unibo.alchemist.model.interfaces.Molecule;
+import it.unibo.alchemist.model.interfaces.Node;
+import it.unibo.alchemist.model.interfaces.Position;
+import it.unibo.alchemist.model.interfaces.Reaction;
+
+import it.unibo.alchemist.model.interfaces.TimeDistribution;
+
 
 import org.apache.commons.math3.random.RandomGenerator;
 
@@ -19,8 +30,8 @@ import org.apache.commons.math3.random.RandomGenerator;
 
 public class AgentIncarnation<P extends Position<? extends P>> implements Incarnation<Object, P> {
 
-    private final static String POSTMAN_AGENT_NAME = "postman";
-    private final static String BLACKBOARD_AGENT_NAME = "blackboard";
+    public final static String POSTMAN_AGENT_NAME = "postman";
+    public final static String BLACKBOARD_AGENT_NAME = "blackboard";
 
     @Override
     public double getProperty(final Node<Object> node, final Molecule mol, final String prop) {
@@ -71,7 +82,7 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
             @Override
             public Context getContext() {
                 // Defines the depth of an action and it affects the performances
-                return Context.NEIGHBORHOOD;// TODO va bene come profondità?
+                return Context.LOCAL;// TODO va bene come profondità?
             }
 
             @Override

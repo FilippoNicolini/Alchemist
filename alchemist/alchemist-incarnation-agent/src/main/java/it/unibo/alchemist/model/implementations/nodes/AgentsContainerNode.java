@@ -1,19 +1,16 @@
 package it.unibo.alchemist.model.implementations.nodes;
 
+import it.unibo.alchemist.model.AgentIncarnation;
 import it.unibo.alchemist.model.implementations.actions.AbstractAgent;
+import it.unibo.alchemist.model.implementations.actions.Blackboard;
 import it.unibo.alchemist.model.implementations.actions.SimpleAgent;
 import it.unibo.alchemist.model.implementations.environments.Continuous2DEnvironment;
 import it.unibo.alchemist.model.implementations.times.DoubleTime;
 import it.unibo.alchemist.model.interfaces.Environment;
-import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Time;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 
 /**
  * Node for Agent Incarnation.
@@ -24,8 +21,8 @@ public class AgentsContainerNode extends AbstractNode<Object> {
     private final Environment<Object, Position<? extends Continuous2DEnvironment>> environment;
     private final Map<String, AbstractAgent> agents = new LinkedHashMap<>();
 
-    private Integer nodeDirectionAngle = 0; // [0-360] Direction zero means to point to the north
-    private Double nodeSpeed = 0.0; // Speed zero means that the node is stopped
+    private double nodeDirectionAngle = 0.0; // [0-360] Direction zero means to point to the north
+    private double nodeSpeed = 0.0; // Speed zero means that the node is stopped
     private Time lastNodePositionUpdateTau;
 
     /**
@@ -46,11 +43,11 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         return new AgentsContainerNode(this.param, this.environment);
     }
 
-    public synchronized Integer getNodeDirectionAngle() {
+    public double getNodeDirectionAngle() {
         return this.nodeDirectionAngle;
     }
 
-    public synchronized Double getNodeSpeed() {
+    public double getNodeSpeed() {
         return this.nodeSpeed;
     }
 
@@ -62,8 +59,12 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         return this.environment.getPosition(this);
     }
 
-    // TODO verificare sincronizzazione
-    public synchronized void changeDirectionAngle(final int angle, final boolean isDelta) {
+    /**
+     * Update the direction of the node.
+     * @param angle value of direction in radians.
+     * @param isDelta boolean to indicate if the new value is a delta to add to the previous value.
+     */
+    public void changeDirectionAngle(final double angle, final boolean isDelta) {
         if (isDelta) {
             this.nodeDirectionAngle += angle;
             /*if (this.nodeDirectionAngle > 360) {
@@ -74,8 +75,11 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         }
     }
 
-    // TODO verificare sincronizzazione
-    public synchronized void changeNodeSpeed(final double speed) {
+    /**
+     * Update the speed of the node.
+     * @param speed value of the speed.
+     */
+    public void changeNodeSpeed(final double speed) {
         this.nodeSpeed = speed;
     }
 
@@ -102,11 +106,10 @@ public class AgentsContainerNode extends AbstractNode<Object> {
      */
     public void changeNodePosition(final Time updateTau) {
         final Position currentPosition = this.getNodePosition();
-        final double radAngle =  (90 - this.nodeDirectionAngle) * Math.PI / 180; // convert degrees to radians (- 90 is the correction angle)
+        final double radAngle =  this.nodeDirectionAngle;
         final double radius = (updateTau.toDouble() - this.lastNodePositionUpdateTau.toDouble()) * this.nodeSpeed; // radius = space covered = time spent * speed
-        final Number x = currentPosition.getCoordinate(0) + radius * Math.cos(radAngle);
-        final Number y = currentPosition.getCoordinate(1) + radius * Math.sin(radAngle);
-        // TODO per la y considerare la direzione dell'asse delle ordinate: se aumenta verso l'altro usare il +, altrimenti usare il -
+        final double x = currentPosition.getCoordinate(0) + radius * Math.cos(radAngle);
+        final double y = currentPosition.getCoordinate(1) + radius * Math.sin(radAngle);
 
         this.environment.moveNodeToPosition(this, this.environment.makePosition(x, y));
         this.lastNodePositionUpdateTau = updateTau;
@@ -146,30 +149,50 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         this.environment.getNeighborhood(this).getNeighbors().forEach(node -> {
             // Calculates the distance between nodes
             final double distance = this.environment.getDistanceBetweenNodes(this, node);
-            // Sets the distance for each agent inside the node
-            ((AgentsContainerNode) node).getAgentsMap().keySet().forEach(strNeighborAgentName -> {
-                agentsDistances.put(strNeighborAgentName, distance);
+            // Sets the distance for each agent inside the node (excluding the blackboards)
+            ((AgentsContainerNode) node).getAgentsMap().forEach((strAgentName, agent) -> {
+                if (!agent.getClass().equals(Blackboard.class)) {
+                    agentsDistances.put(strAgentName, distance);
+                }
             });
         });
         return agentsDistances;
     }
 
     /**
-     * Retrieve the agent instance, using the agent name, if presents in the neighborhood.
-     * @param agentName the name of agent to find.
-     * @return agent instance or null.
+     * Retrieve the nearest blackboard instance if presents in the neighborhood.
+     * @return agent instance if founded.
      */
-    public AbstractAgent getNeighborAgent(final String agentName) {
-        // For each neighbor node
-        List<Node<Object>> neighbor = this.environment.getNeighborhood(this).getNeighbors()
-                .stream()
-                .filter(node -> ((AgentsContainerNode) node).getAgentsMap().keySet().contains(agentName))
-                .collect(Collectors.toList());
+    public AbstractAgent getNearestBlackboard() {
+        AbstractAgent nearestBlackboard = null;
+        double minDist = Double.MAX_VALUE;
 
-        if (neighbor.size() > 0) {
-            return ((AgentsContainerNode) neighbor.get(0)).getAgentsMap().get(agentName);
-        } else {
-            return null;
+        // For each neighbor node
+        for (Object obj : this.environment.getNeighborhood(this).getNeighbors()) {
+            final AgentsContainerNode node = (AgentsContainerNode) obj;
+            final double currDist = this.environment.getDistanceBetweenNodes(this, node);
+            if (node.getAgentsMap().keySet().contains(AgentIncarnation.BLACKBOARD_AGENT_NAME) && currDist < minDist) {
+                minDist = currDist;
+                nearestBlackboard = node.getAgentsMap().get(AgentIncarnation.BLACKBOARD_AGENT_NAME);
+            }
         }
+        return nearestBlackboard;
+    }
+
+    /**
+     * Retrieve a list of blackboard neighbors
+     * @return list of blackboards
+     */
+    public List<Blackboard> getBlackboardNeighborhood() {
+        final List<Blackboard> blackboardNeighborhood = new ArrayList<>();
+        // For each neighbor node
+        for (Object obj : this.environment.getNeighborhood(this).getNeighbors()) {
+            ((AgentsContainerNode) obj).getAgentsMap().forEach((strAgentName, agent) -> {
+                if (agent.getClass().equals(Blackboard.class)) {
+                    blackboardNeighborhood.add(((Blackboard) agent));
+                }
+            });
+        }
+        return blackboardNeighborhood;
     }
 }

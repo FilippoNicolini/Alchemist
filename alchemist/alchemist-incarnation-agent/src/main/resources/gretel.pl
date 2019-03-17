@@ -1,13 +1,31 @@
 init :-
     removeBelief(movement(S,D)),
-    addBelief(movement(0.02,D)),
-    takeTuple(blackboard,breadcrumb(hansel,X,Y)),
-    takeTuple(blackboard,stop(gretel)).
+    addBelief(movement(0.023,D)),
+    takeTuple(breadcrumb(hansel,here)),
+    addBelief(counter(0)),
+    takeTuple(stop(gretel)).
 
 onAddBelief(position(X,Y)) :-
-    checkPosition(X,Y).
+    removeBelief(counter(C)),
+    handlePosition(C,X,Y),
+    checkDistance.
 
-onAddBelief(distance(_,_)) :-
+handlePosition(C,X,Y) :-
+    C < 15,
+    C1 is C + 1,
+    addBelief(counter(C1)).
+
+handlePosition(C,X,Y) :-
+    C >= 15,
+    addBelief(counter(0)),
+    removeBelief(movement(S,D)),
+    D1 is D - 0.5,
+    addBelief(movement(S,D1)).
+
+onAddBelief(distance(A,ND,OD)) :-
+    true.
+
+onAddBelief(distance(A,ND)) :-
     true.
 
 onAddBelief(movement(_,_)) :-
@@ -16,45 +34,73 @@ onAddBelief(movement(_,_)) :-
 onRemoveBelief(movement(_,_)) :-
     true.
 
-onResponseMessage(stop(gretel)) :-
+onAddBelief(counter(C)) :-
+    true.
+
+onRemoveBelief(counter(C)) :-
+    true.
+
+onResponseMessage(msg(stop(gretel),X,Y)) :-
     removeBelief(movement(_,D)),
     addBelief(movement(0,D)).
 
-onResponseMessage(breadcrumb(hansel,X,Y)) :-
-    checkDistance(hansel),
-    calculateAngle(X,Y).
+onResponseMessage(msg(breadcrumb(hansel,here),X,Y)) :-
+    removeBelief(counter(_)),
+    addBelief(counter(0)),
+    changeDirection(X,Y).
 
-checkDistance(A) :-
-    belief(distance(A,D)),
-    D > 0.3,
-    takeTuple(blackboard,breadcrumb(hansel,X,Y)).
+checkDistance :-
+    belief(distance(hansel,D)),
+    D < 0.08,
+    writeTuple(stop(hansel)).
 
-checkDistance(A) :-
-    belief(distance(A,D)),
-    D < 0.3,
-    writeTuple(blackboard,stop(hansel)).
+checkDistance :-
+    takeTuple(breadcrumb(hansel,here)).
 
-calculateAngle(X2,Y2) :-
+changeDirection(X2,Y2) :-
     belief(position(X1,Y1)),
-    DX is X1 - X2,
-    DY is Y1 - Y2,
-    RAD is DY / DX,
-    TMP is RAD * 180,
-    DEG is TMP / 3.14,
-    changeDirection(DEG).
+    DX is X2 - X1,
+    DY is Y2 - Y1,
+    calculateAtan(DY,DX).
 
-checkPosition(X,Y) :-
-    checkBoundingBox(X),
-    checkBoundingBox(Y).
-
-checkBoundingBox(X) :- X < -10, changeDirection(180).
-
-checkBoundingBox(X) :- X > 10, changeDirection(180).
-
-checkBoundingBox(X) :- X > -10, X < 10.
-
-changeDirection(A) :-
+calculateAtan(DY,DX) :-
+    DX > 0,
+    RAD is atan(DY / DX),
     removeBelief(movement(S,D)),
-    D1 is D - A,
-    D2 is mod(D1,360),
-    addBelief(movement(S,D2)).
+    addBelief(movement(S,RAD)).
+
+calculateAtan(DY,DX) :-
+    DX < 0,
+    DY >= 0,
+    TMP is atan(DY / DX),
+    RAD is TMP + 3.14,
+    removeBelief(movement(S,D)),
+    addBelief(movement(S,RAD)).
+
+calculateAtan(DY,DX) :-
+    DX < 0,
+    DY < 0,
+    TMP is atan(DY / DX),
+    RAD is TMP - 3.14,
+    removeBelief(movement(S,D)),
+    addBelief(movement(S,RAD)).
+
+calculateAtan(DY,DX) :-
+    DX == 0,
+    DY > 0,
+    RAD is 3.14 / 2,
+    removeBelief(movement(S,D)),
+    addBelief(movement(S,RAD)).
+
+calculateAtan(DY,DX) :-
+    DX == 0,
+    DY < 0,
+    RAD is -3.14 / 2,
+    removeBelief(movement(S,D)),
+    addBelief(movement(S,RAD)).
+
+
+
+
+
+

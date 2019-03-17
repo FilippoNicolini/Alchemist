@@ -1,15 +1,24 @@
 package it.unibo.alchemist.model.implementations.actions;
 
-import alice.tuprolog.MalformedGoalException;
+import alice.tuprolog.Double;
+import alice.tuprolog.InvalidTheoryException;
 import alice.tuprolog.NoSolutionException;
 import alice.tuprolog.SolveInfo;
+import alice.tuprolog.Struct;
 import alice.tuprolog.Term;
+import alice.tuprolog.Theory;
 import alice.tuprolog.Var;
+import alice.tuprolog.UnknownVarException;
 import it.unibo.alchemist.model.interfaces.Action;
 import it.unibo.alchemist.model.interfaces.Node;
+import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Reaction;
 
-import java.util.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Implementation of a blackboard for tuple space extension.
@@ -27,6 +36,14 @@ public class Blackboard extends AbstractAgent {
      */
     public Blackboard(final String blackboardName, final Node<Object> node) {
         super(blackboardName, node);
+
+        try {
+            this.getEngine().addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + this.getAgentName() + ".pl"))));
+        } catch (IOException e) {
+            System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
+        } catch (InvalidTheoryException e) {
+            System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
+        }
     }
 
     @Override
@@ -41,7 +58,7 @@ public class Blackboard extends AbstractAgent {
 
             System.out.println("Nodo: " + getNode().getId() + " || agent " + this.getAgentName() + " inizializzato");
 
-            this.firstReasoning();
+            this.initReasoning();
         } else {
 
             this.handleIncomingRequests();
@@ -90,7 +107,6 @@ public class Blackboard extends AbstractAgent {
                     takeFromBlackboard(currRequest, true);
                     break;
             }
-
         }
     }
 
@@ -99,16 +115,11 @@ public class Blackboard extends AbstractAgent {
      * @param request the request to add.
      */
     private void writeOnBlackboard(final Request request) {
-        try {
-            final SolveInfo msgToWrite = this.getEngine().solve("assertz(" + request.getTemplate() + ").");
-            if (msgToWrite.isSuccess()) {
-                this.handlePendingRequests();
-            } else {
-                System.err.println("Malformed template to write on blackboard");
-            }
-
-        } catch (MalformedGoalException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " to write on blackboard.");
+        final SolveInfo msgToWrite = this.getEngine().solve(new Struct("assertz", request.getTemplate()));
+        if (msgToWrite.isSuccess()) {
+            this.handlePendingRequests();
+        } else {
+            System.err.println("Malformed template to write on blackboard");
         }
     }
 
@@ -119,20 +130,22 @@ public class Blackboard extends AbstractAgent {
      */
     private void readFromBlackboard(final Request request, final boolean isPending) {
         try {
-            final SolveInfo verifyMatch = this.getEngine().solve(request.getTemplate() + ".");
+            final SolveInfo verifyMatch = this.getEngine().solve(request.getTemplate());
             if (verifyMatch.isSuccess()) {
                 if (isPending) {
                     this.pendingRequests.remove(request);
                 }
-                request.getAgent().addResponseMessage(verifyMatch.getSolution());
+                request.getAgent().addResponseMessage(new Struct(
+                        "msg",
+                        verifyMatch.getSolution(),
+                        new Double(getNode().getNodePosition().getCoordinate(0)),
+                        new Double(getNode().getNodePosition().getCoordinate(1))));
             } else {
                 if (!isPending) {
-                    System.out.println("ADD TO PENDING || " + request.getAction() + " || " + request.getTemplate());
+                    // System.out.println("ADD TO PENDING || " + request.getAction() + " || " + request.getTemplate());
                     this.pendingRequests.add(request);
                 }
             }
-        } catch (MalformedGoalException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " to read on blackboard.");
         } catch (NoSolutionException e) {
             System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to read on blackboard.");
         }
@@ -145,26 +158,36 @@ public class Blackboard extends AbstractAgent {
      */
     private void takeFromBlackboard(final Request request, final boolean isPending) {
         try {
-            final SolveInfo verifyMatch = this.getEngine().solve("retract(" + request.getTemplate() + ").");
+            final SolveInfo verifyMatch = this.getEngine().solve(new Struct("retract", request.getTemplate()));
             if (verifyMatch.isSuccess()) {
                 if (isPending) {
                     this.pendingRequests.remove(request);
                 }
-                // Replaces the binding vars with term in the solution
-                String response = request.getTemplate();
-                for (int i = 0; i < verifyMatch.getBindingVars().size(); i++) {
-                    final Var currVar = verifyMatch.getBindingVars().get(i);
-                    response = response.replace(currVar.getName(), currVar.getTerm().toString());
+                try {
+                    final SolveInfo match = this.getEngine().solve(new Struct(
+                            "=",
+                            verifyMatch.getSolution(),
+                            new Struct(
+                                    "retract",
+                                    new Var("X"))));
+                    if (match.isSuccess()) {
+                        final Term term = match.getTerm("X");
+                        final Position nodePosition = getNode().getNodePosition();
+                        request.getAgent().addResponseMessage(new Struct(
+                                "msg",
+                                term,
+                                new Double(nodePosition.getCoordinate(0)),
+                                new Double(nodePosition.getCoordinate(1))));
+                    }
+                } catch (UnknownVarException e) {
+                    System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to match take on blackboard.");
                 }
-                request.getAgent().addResponseMessage(Term.createTerm(response));
             } else {
                 if (!isPending) {
-                    System.out.println("ADD TO PENDING || " + request.getAction() + " || " + request.getTemplate());
+                    // System.out.println("ADD TO PENDING || " + request.getAction() + " || " + request.getTemplate());
                     this.pendingRequests.add(request);
                 }
             }
-        } catch (MalformedGoalException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + MALFORMED_GOAL_MSG + " to take on blackboard.");
         } catch (NoSolutionException e) {
             System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to take on blackboard.");
         }
@@ -181,7 +204,7 @@ public class Blackboard extends AbstractAgent {
      * @param agent agent instance.
      * @param action action to performe ('write', 'read', 'take').
      */
-    public void insertRequest(final String template, final AbstractAgent agent, final String action) {
+    public void insertRequest(final Term template, final AbstractAgent agent, final String action) {
         this.incomingRequests.add(new Request(template, agent, action));
     }
 
@@ -190,7 +213,7 @@ public class Blackboard extends AbstractAgent {
      * Defines a waiting agent.
      */
     public final class Request {
-        private final String template;
+        private final Term template;
         private final AbstractAgent agent;
         private final String action;
 
@@ -200,13 +223,13 @@ public class Blackboard extends AbstractAgent {
          * @param agent agent instance.
          * @param action action to performe ('write', 'read', 'take').
          */
-        private Request(final String template, final AbstractAgent agent, final String action) {
+        private Request(final Term template, final AbstractAgent agent, final String action) {
             this.template = template;
             this.agent = agent;
             this.action = action;
         }
 
-        public String getTemplate() {
+        public Term getTemplate() {
             return this.template;
         }
 

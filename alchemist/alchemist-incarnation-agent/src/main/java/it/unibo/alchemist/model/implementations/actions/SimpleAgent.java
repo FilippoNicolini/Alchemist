@@ -2,7 +2,9 @@ package it.unibo.alchemist.model.implementations.actions;
 
 import alice.tuprolog.InvalidTheoryException;
 import alice.tuprolog.Theory;
-import it.unibo.alchemist.model.interfaces.*;
+import it.unibo.alchemist.model.interfaces.Reaction;
+import it.unibo.alchemist.model.interfaces.Action;
+import it.unibo.alchemist.model.interfaces.Node;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,7 +45,7 @@ public class SimpleAgent extends AbstractAgent {
 
             System.out.println("Nodo: " + getNode().getId() + " || agent " + this.getAgentName() + " inizializzato");
 
-            this.firstReasoning();
+            this.initReasoning();
         } else {
             //Agent's reasoning cycle
 
@@ -60,7 +62,7 @@ public class SimpleAgent extends AbstractAgent {
 
             this.notifyBeliefBaseChanges();
 
-            this.hanldeOutGoingMessages();
+            this.handleOutGoingMessages();
         }
     }
 }

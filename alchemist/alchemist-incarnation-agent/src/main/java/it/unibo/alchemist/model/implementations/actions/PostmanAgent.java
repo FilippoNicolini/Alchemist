@@ -1,7 +1,6 @@
 package it.unibo.alchemist.model.implementations.actions;
 
 
-import it.unibo.alchemist.model.implementations.nodes.AgentsContainerNode;
 import it.unibo.alchemist.model.interfaces.Action;
 import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Reaction;
@@ -27,7 +26,7 @@ public class PostmanAgent extends AbstractAgent {
 
     @Override
     public void execute() {
-        ((AgentsContainerNode) getNode()).postman();
+        getNode().postman();
     }
 
 }
