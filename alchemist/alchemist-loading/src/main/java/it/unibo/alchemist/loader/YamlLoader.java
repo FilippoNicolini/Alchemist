@@ -1,11 +1,10 @@
-/*******************************************************************************
- * Copyright (C) 2010-2018, Danilo Pianini and contributors listed in the main
- * project's alchemist/build.gradle file.
- * 
+/*
+ * Copyright (C) 2010-2019, Danilo Pianini and contributors listed in the main project's alchemist/build.gradle file.
+ *
  * This file is part of Alchemist, and is distributed under the terms of the
- * GNU General Public License, with a linking exception, as described in the file
- * LICENSE in the Alchemist distribution's top directory.
- ******************************************************************************/
+ * GNU General Public License, with a linking exception,
+ * as described in the file LICENSE in the Alchemist distribution's top directory.
+ */
 package it.unibo.alchemist.loader;
 
 import static java.util.Collections.emptyList;
@@ -173,7 +172,7 @@ public final class YamlLoader implements Loader {
                     final Object formula = m.get(FORMULA);
                     return formula instanceof Number
                         ? new NumericConstant((Number) formula)
-                        : SUPPORTED_LANGUAGES.get(m.getOrDefault(LANGUAGE, "groovy").toString().toLowerCase())
+                        : SUPPORTED_LANGUAGES.get(m.getOrDefault(LANGUAGE, "groovy").toString().toLowerCase(Locale.ENGLISH))
                             .apply(formula.toString());
                 }));
     private static final BuilderConfiguration<FilteringPolicy> FILTERING_CONFIG = new BuilderConfiguration<>(
