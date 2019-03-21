@@ -2,6 +2,7 @@ package it.unibo.alchemist.model.implementations.actions;
 
 import alice.tuprolog.InvalidTheoryException;
 import alice.tuprolog.Theory;
+import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule;
 import it.unibo.alchemist.model.interfaces.Reaction;
 import it.unibo.alchemist.model.interfaces.Action;
 import it.unibo.alchemist.model.interfaces.Node;
@@ -23,6 +24,8 @@ public class SimpleAgent extends AbstractAgent {
      */
     public SimpleAgent(final String name, final Node<Object> node, final Reaction<Object> reaction) {
         super(name, node, reaction);
+
+        node.setConcentration(new SimpleMolecule(name), 0);
 
         try {
             this.getEngine().addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + this.getAgentName() + ".pl"))));

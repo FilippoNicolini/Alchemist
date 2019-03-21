@@ -1,6 +1,6 @@
 init :-
     removeBelief(movement(S,D)),
-    addBelief(movement(0.023,D)),
+    addBelief(movement(0.027,4.3)),
     takeTuple(breadcrumb(hansel,here)),
     addBelief(counter(0)),
     takeTuple(stop(gretel)).
@@ -19,7 +19,7 @@ handlePosition(C,X,Y) :-
     C >= 15,
     addBelief(counter(0)),
     removeBelief(movement(S,D)),
-    D1 is D - 0.5,
+    D1 is D + 0.08,
     addBelief(movement(S,D1)).
 
 onAddBelief(distance(A,ND,OD)) :-

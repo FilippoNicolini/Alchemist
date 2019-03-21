@@ -9,6 +9,7 @@ import alice.tuprolog.Term;
 import alice.tuprolog.Theory;
 import alice.tuprolog.Var;
 import alice.tuprolog.UnknownVarException;
+import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule;
 import it.unibo.alchemist.model.interfaces.Action;
 import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Position;
@@ -36,6 +37,8 @@ public class Blackboard extends AbstractAgent {
      */
     public Blackboard(final String blackboardName, final Node<Object> node) {
         super(blackboardName, node);
+
+        node.setConcentration(new SimpleMolecule(blackboardName), 0);
 
         try {
             this.getEngine().addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + this.getAgentName() + ".pl"))));
@@ -117,6 +120,16 @@ public class Blackboard extends AbstractAgent {
     private void writeOnBlackboard(final Request request) {
         final SolveInfo msgToWrite = this.getEngine().solve(new Struct("assertz", request.getTemplate()));
         if (msgToWrite.isSuccess()) {
+            final SolveInfo matchBreadcrumb = this.getEngine().solve(new Struct(
+                    "=",
+                    request.getTemplate(),
+                            new Struct(
+                                    "breadcrumb",
+                                    Term.createTerm("hansel"),
+                                    Term.createTerm("here"))));
+            if (matchBreadcrumb.isSuccess()) {
+                getNode().setConcentration(new SimpleMolecule("breadcrumb"), 0);
+            }
             this.handlePendingRequests();
         } else {
             System.err.println("Malformed template to write on blackboard");
@@ -171,6 +184,16 @@ public class Blackboard extends AbstractAgent {
                                     "retract",
                                     new Var("X"))));
                     if (match.isSuccess()) {
+                        final SolveInfo matchBreadcrumb = this.getEngine().solve(new Struct(
+                                "=",
+                                request.getTemplate(),
+                                new Struct(
+                                        "breadcrumb",
+                                        Term.createTerm("hansel"),
+                                        Term.createTerm("here"))));
+                        if (matchBreadcrumb.isSuccess() && getNode().contains(new SimpleMolecule("breadcrumb"))) {
+                            getNode().removeConcentration(new SimpleMolecule("breadcrumb"));
+                        }
                         final Term term = match.getTerm("X");
                         final Position nodePosition = getNode().getNodePosition();
                         request.getAgent().addResponseMessage(new Struct(
@@ -182,6 +205,7 @@ public class Blackboard extends AbstractAgent {
                 } catch (UnknownVarException e) {
                     System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to match take on blackboard.");
                 }
+
             } else {
                 if (!isPending) {
                     // System.out.println("ADD TO PENDING || " + request.getAction() + " || " + request.getTemplate());

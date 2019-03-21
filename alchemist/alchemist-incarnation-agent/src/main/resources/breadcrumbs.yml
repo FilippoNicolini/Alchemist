@@ -9,19 +9,19 @@ network-model:
   parameters: [0.5]
 
 displacements:
-  - in: {type: Circle, parameters: [1,2,2,1]}
+  - in: {type: Circle, parameters: [1,-1.8,2,0.2]}
     programs:
       -
         - time-distribution: 1
           program: "hansel"
 
-  - in: {type: Circle, parameters: [1,2,2,1]}
+  - in: {type: Circle, parameters: [1,-1.5,4,0.2]}
     programs:
       -
         - time-distribution: 1
           program: "gretel"
 
-  - in: {type: Circle, parameters: [800,2,2,4]}
+  - in: {type: Circle, parameters: [1500,2,2,4.5]}
     programs:
       -
         - time-distribution: 1
