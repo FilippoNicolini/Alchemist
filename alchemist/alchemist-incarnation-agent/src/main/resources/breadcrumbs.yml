@@ -15,13 +15,13 @@ displacements:
         - time-distribution: 1
           program: "hansel"
 
-  - in: {type: Circle, parameters: [1,-1.5,4,0.2]}
+  - in: {type: Circle, parameters: [1,2,2,0.2]}
     programs:
       -
-        - time-distribution: 1
+        - time-distribution: 5
           program: "gretel"
 
-  - in: {type: Circle, parameters: [1500,2,2,4.5]}
+  - in: {type: Circle, parameters: [1000,2,2,4.5]}
     programs:
       -
         - time-distribution: 1

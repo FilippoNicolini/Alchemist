@@ -222,7 +222,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         // Solves init plan if present
         final SolveInfo init = this.getEngine().solve(new Struct("init"));
         if (init.isSuccess()) {
-            System.out.println(this.getAgentName() + SEPARATOR + "init " + SUCCESS_PLAN);
+            // System.out.println(this.getAgentName() + SEPARATOR + "init " + SUCCESS_PLAN);
         } else {
             System.err.println(this.getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " init.");
         }
@@ -290,6 +290,22 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
      */
     protected void getBeliefBaseChanges() {
         try {
+            // Gets removed beliefs
+            SolveInfo removeBelief = this.engine.solve(new Struct(
+                    "retract",
+                    new Struct(
+                            "removed_belief",
+                            new Var("B"))));
+            while (removeBelief != null && removeBelief.isSuccess()) {
+                // Puts beliefs in the map for the notification
+                this.beliefBaseChanges.put(removeBelief.getTerm("B"), REMOVE_NOTIFICATION);
+                if (removeBelief.hasOpenAlternatives()) {
+                    removeBelief = this.engine.solveNext();
+                } else {
+                    removeBelief = null;
+                }
+            }
+
             // Gets added beliefs
             SolveInfo insertBelief = this.engine.solve(new Struct(
                     "retract",
@@ -329,22 +345,6 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                                     new Var("B"))));
                 } else {
                     insertBelief = null;
-                }
-            }
-
-            // Gets removed beliefs
-            SolveInfo removeBelief = this.engine.solve(new Struct(
-                    "retract",
-                    new Struct(
-                            "removed_belief",
-                            new Var("B"))));
-            while (removeBelief != null && removeBelief.isSuccess()) {
-                // Puts beliefs in the map for the notification
-                this.beliefBaseChanges.put(removeBelief.getTerm("B"), REMOVE_NOTIFICATION);
-                if (removeBelief.hasOpenAlternatives()) {
-                    removeBelief = this.engine.solveNext();
-                } else {
-                    removeBelief = null;
                 }
             }
         } catch (NoSolutionException e) {
@@ -519,7 +519,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                             Term.createTerm(strAgentName),
                             new Double(distance));
                     final Struct newDistance = new Struct("belief", distanceBelief);
-
+                    System.out.println(getAgentName() + " has new agent in the neighborhood: " + strAgentName);
                     this.engine.getTheoryManager().assertA(newDistance, true, null, false);
                     // Adds the position updating as a add belief notification
                     this.beliefBaseChanges.put(distanceBelief, ADD_NOTIFICATION);

@@ -1,14 +1,18 @@
 init :-
     writeTuple(breadcrumb(hansel,here)),
     removeBelief(movement(S,D)),
-    addBelief(movement(0.027,4.8)),
+    addBelief(movement(0.025,4.8)),
     addBelief(counter(0,0)),
     addBelief(spiralCorner(0.08)),
-    takeTuple(stop(hansel)).
+    addBelief(stopped(false)).
 
 onAddBelief(position(X,Y)) :-
+    belief(stopped(false)),
     removeBelief(counter(C1,C2)),
     handlePosition(C1,C2,X,Y).
+
+onAddBelief(position(X,Y)) :-
+    true.
 
 handlePosition(C1,C2,X,Y) :-
     C1 < 300,
@@ -37,11 +41,16 @@ handlePosition(C1,C2,X,Y) :-
     V1 is V + TEMP,
     addBelief(spiralCorner(V1)).
 
-
-onAddBelief(distance(_,_)) :-
+onAddBelief(distance(A,ND,OD)) :-
     true.
 
-onAddBelief(distance(_,_,_)) :-
+onAddBelief(distance(gretel,ND)) :-
+    removeBelief(stopped(false)),
+    addBelief(stopped(true)),
+    removeBelief(movement(_,D)),
+    addBelief(movement(0,D)).
+
+onAddBelief(distance(A,ND)) :-
     true.
 
 onAddBelief(movement(_,_)) :-

@@ -118,21 +118,32 @@ public class Blackboard extends AbstractAgent {
      * @param request the request to add.
      */
     private void writeOnBlackboard(final Request request) {
-        final SolveInfo msgToWrite = this.getEngine().solve(new Struct("assertz", request.getTemplate()));
-        if (msgToWrite.isSuccess()) {
-            final SolveInfo matchBreadcrumb = this.getEngine().solve(new Struct(
-                    "=",
-                    request.getTemplate(),
-                            new Struct(
-                                    "breadcrumb",
-                                    Term.createTerm("hansel"),
-                                    Term.createTerm("here"))));
-            if (matchBreadcrumb.isSuccess()) {
-                getNode().setConcentration(new SimpleMolecule("breadcrumb"), 0);
+        final SolveInfo matchBreadcrumb = this.getEngine().solve(new Struct(
+                "=",
+                request.getTemplate(),
+                new Struct(
+                        "breadcrumb",
+                        Term.createTerm(request.getAgent().getAgentName()),
+                        Term.createTerm("here"))));
+        // if the tuple to write is breadcrumb it is added only the first time.
+        if (matchBreadcrumb.isSuccess()) {
+            final SolveInfo checkIfPresent = this.getEngine().solve(request.getTemplate());
+            if (!checkIfPresent.isSuccess()) {
+                final SolveInfo msgToWrite = this.getEngine().solve(new Struct("assertz", request.getTemplate()));
+                if (msgToWrite.isSuccess()) {
+                    getNode().setConcentration(new SimpleMolecule("breadcrumb"), 0);
+                    this.handlePendingRequests();
+                } else {
+                    System.err.println("Malformed template to write on blackboard");
+                }
             }
-            this.handlePendingRequests();
         } else {
-            System.err.println("Malformed template to write on blackboard");
+            final SolveInfo msgToWrite = this.getEngine().solve(new Struct("assertz", request.getTemplate()));
+            if (msgToWrite.isSuccess()) {
+                this.handlePendingRequests();
+            } else {
+                System.err.println("Malformed template to write on blackboard");
+            }
         }
     }
 
