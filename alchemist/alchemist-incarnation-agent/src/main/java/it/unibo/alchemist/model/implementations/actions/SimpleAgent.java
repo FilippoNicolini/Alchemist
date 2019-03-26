@@ -6,6 +6,7 @@ import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule;
 import it.unibo.alchemist.model.interfaces.Reaction;
 import it.unibo.alchemist.model.interfaces.Action;
 import it.unibo.alchemist.model.interfaces.Node;
+import org.apache.commons.math3.random.RandomGenerator;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,9 +22,10 @@ public class SimpleAgent extends AbstractAgent {
      * @param name name of the agent.
      * @param node node where the agent is placed.
      * @param reaction reaction of the agent.
+     * @param rand random generator.
      */
-    public SimpleAgent(final String name, final Node<Object> node, final Reaction<Object> reaction) {
-        super(name, node, reaction);
+    public SimpleAgent(final String name, final Node<Object> node, final RandomGenerator rand, final Reaction<Object> reaction) {
+        super(name, node, rand, reaction);
 
         node.setConcentration(new SimpleMolecule(name), 0);
 
@@ -37,8 +39,8 @@ public class SimpleAgent extends AbstractAgent {
     }
 
     @Override
-    public Action<Object> cloneAction(final Node<Object> n, final Reaction<Object> r) {
-        return new SimpleAgent("cloned_" + this.getAgentName(), getNode(), r);
+    public Action<Object> cloneAction(final Node<Object> node, final Reaction<Object> reaction) {
+        return new SimpleAgent("cloned_" + this.getAgentName(), node, this.getRandomGenerator(), reaction);
     }
 
     @Override

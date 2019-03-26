@@ -56,7 +56,7 @@ onRemoveBelief(counterStep(C)) :-
 
 onResponseMessage(msg(breadcrumb(hansel,here),X,Y)) :-
     removeBelief(counterStep(_)),
-    addBelief(counterStep(15)),
+    addBelief(counterStep(30)),
     removeBelief(movement(_,D)),
     addBelief(movement(0.05,D)),
     changeDirection(X,Y).
@@ -96,11 +96,10 @@ calculateAtan(DY,DX,RAD) :-
     RAD is -3.14 / 2.
 
 randomSteps(R) :-
-    rand_int(50,R).
+    randomGenerator <- nextDouble returns X,
+    R is X * 50.
 
 randomDirection(R) :-
-    rand_float(X),
+    randomGenerator <- nextDouble returns X,
     TMP is X * 3.14,
     R is TMP - 1.57.
-
-

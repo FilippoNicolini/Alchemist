@@ -103,11 +103,11 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
 
         Action<Object> action;
         if (param.contains(POSTMAN_AGENT_NAME)) {
-            action = new PostmanAgent(param, node);
+            action = new PostmanAgent(param, node, rand);
         } else if (param.contains(BLACKBOARD_AGENT_NAME)) {
-            action = new Blackboard(param, node);
+            action = new Blackboard(param, node, rand);
         } else {
-            action = new SimpleAgent(param, node, reaction); // Ping and Pong agents are built with the same class
+            action = new SimpleAgent(param, node, rand, reaction); // Ping and Pong agents are built with the same class
         }
         return action;
     }

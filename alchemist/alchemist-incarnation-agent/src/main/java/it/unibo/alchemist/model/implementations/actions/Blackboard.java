@@ -14,6 +14,7 @@ import it.unibo.alchemist.model.interfaces.Action;
 import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Reaction;
+import org.apache.commons.math3.random.RandomGenerator;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,8 +36,8 @@ public class Blackboard extends AbstractAgent {
      * @param blackboardName name of the blackboard.
      * @param node node where the agent is placed.
      */
-    public Blackboard(final String blackboardName, final Node<Object> node) {
-        super(blackboardName, node);
+    public Blackboard(final String blackboardName, final Node<Object> node, final RandomGenerator rand) {
+        super(blackboardName, node, rand);
 
         node.setConcentration(new SimpleMolecule(blackboardName), 0);
 
@@ -51,7 +52,7 @@ public class Blackboard extends AbstractAgent {
 
     @Override
     public Action<Object> cloneAction(final Node<Object> n, final Reaction<Object> r) {
-        return new Blackboard("cloned_" + this.getAgentName(), getNode());
+        return new Blackboard("cloned_" + this.getAgentName(), getNode(), getRandomGenerator());
     }
 
     @Override

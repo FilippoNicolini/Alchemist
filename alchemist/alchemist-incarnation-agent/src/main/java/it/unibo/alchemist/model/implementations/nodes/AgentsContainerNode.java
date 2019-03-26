@@ -3,7 +3,6 @@ package it.unibo.alchemist.model.implementations.nodes;
 import it.unibo.alchemist.model.AgentIncarnation;
 import it.unibo.alchemist.model.implementations.actions.AbstractAgent;
 import it.unibo.alchemist.model.implementations.actions.Blackboard;
-import it.unibo.alchemist.model.implementations.actions.SimpleAgent;
 import it.unibo.alchemist.model.implementations.environments.Continuous2DEnvironment;
 import it.unibo.alchemist.model.implementations.times.DoubleTime;
 import it.unibo.alchemist.model.interfaces.Environment;
@@ -43,10 +42,18 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         return new AgentsContainerNode(this.param, this.environment);
     }
 
+    /**
+     * Get node direction angle.
+     * @return node angle in rad.
+     */
     public double getNodeDirectionAngle() {
         return this.nodeDirectionAngle;
     }
 
+    /**
+     * Get the speed of the node.
+     * @return double of the speed.
+     */
     public double getNodeSpeed() {
         return this.nodeSpeed;
     }
@@ -120,7 +127,7 @@ public class AgentsContainerNode extends AbstractNode<Object> {
      */
     public void postman() {
         final Map<String, AbstractAgent> tmpAgentMap = new LinkedHashMap<>();
-        final List<SimpleAgent.OutMessage> outMessages = new ArrayList<>();
+        final List<AbstractAgent.OutMessage> outMessages = new ArrayList<>();
 
         // For each node in the environment get all its agents
         this.environment.getNodes().forEach(node -> {

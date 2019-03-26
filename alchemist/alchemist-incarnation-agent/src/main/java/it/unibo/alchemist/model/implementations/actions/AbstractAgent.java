@@ -1,23 +1,18 @@
 package it.unibo.alchemist.model.implementations.actions;
 
+import alice.tuprolog.*;
 import alice.tuprolog.Double;
-import alice.tuprolog.InvalidTheoryException;
-import alice.tuprolog.NoMoreSolutionException;
-import alice.tuprolog.NoSolutionException;
 import alice.tuprolog.Number;
-import alice.tuprolog.Prolog;
-import alice.tuprolog.SolveInfo;
-import alice.tuprolog.Struct;
-import alice.tuprolog.Term;
-import alice.tuprolog.Theory;
-import alice.tuprolog.Var;
-import alice.tuprolog.UnknownVarException;
+import alice.tuprolog.lib.InvalidObjectIdException;
+import alice.tuprolog.lib.OOLibrary;
 import it.unibo.alchemist.model.implementations.nodes.AgentsContainerNode;
 import it.unibo.alchemist.model.interfaces.Context;
 import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Reaction;
 import kotlin.Triple;
+import org.apache.commons.math3.random.RandomGenerator;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -48,6 +43,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
     protected final static String SUCCESS_PLAN = "plan done successfully.";
     protected final static String TRIGGERED_PLAN = "Triggered plan";
     protected final static String NO_IMPLEMENTATION_FOUND = "No implementation found for ";
+    protected final static String INVALID_OBJECT_MSG = "Invalid object to register into tuProlog engine";
 
     // Strings used in the code
     private final List<Triple<Struct, String, String>> tripleListForTuples = new ArrayList<>();
@@ -60,45 +56,38 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
     private final Queue<InMessage> inbox = new LinkedList<>(); // Mailbox IN queue
     private final Queue<OutMessage> outbox = new LinkedList<>(); // Mailbox OUT queue
     private final Prolog engine = new Prolog(); // tuProlog engine
-    private Reaction agentReaction; // Reference to reaction
+    private Reaction<Object> agentReaction; // Reference to reaction
+    private RandomGenerator randomGenerator; // Random generator of the reaction
     private final Map<Term, String> beliefBaseChanges = new LinkedHashMap<>(); // Map where to save updated belief notifications
 
     /**
      * Constructor for abstract agent.
      * @param name agent name.
      * @param node node where the agent is placed.
+     * @param rand random generator.
      */
-    protected AbstractAgent(final String name, final Node<Object> node) {
+    protected AbstractAgent(final String name, final Node<Object> node, final RandomGenerator rand) {
         super(node);
         this.agentName = name;
+        this.randomGenerator = rand;
 
-        try {
-            this.engine.setTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + BASE_THEORY + ".pl"))));
-        } catch (IOException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
-        } catch (InvalidTheoryException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
-        }
+        this.loadAgentLibrary();
     }
 
     /**
      * Constructor for abstract agent.
      * @param name agent name.
      * @param node node where the agent is placed.
+     * @param rand random generator.
      * @param reaction reaction of the agent.
      */
-    protected AbstractAgent(final String name, final Node<Object> node, final Reaction<Object> reaction) {
+    protected AbstractAgent(final String name, final Node<Object> node, final RandomGenerator rand, final Reaction<Object> reaction) {
         super(node);
         this.agentName = name;
+        this.randomGenerator = rand;
         this.agentReaction = reaction;
 
-        try {
-            this.engine.setTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + BASE_THEORY + ".pl"))));
-        } catch (IOException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
-        } catch (InvalidTheoryException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
-        }
+        this.loadAgentLibrary();
     }
 
     /**
@@ -140,6 +129,14 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         return this.inbox.size() == 0;
     }
 
+    /**
+     * Get the random generator of the agent.
+     * @return random generator
+     */
+    protected RandomGenerator getRandomGenerator() {
+        return this.randomGenerator;
+    }
+
     @Override
     public AgentsContainerNode getNode() {
         return (AgentsContainerNode) super.getNode();
@@ -153,6 +150,23 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
     //------------------------------------------
     // Agent's internal action
     //------------------------------------------
+
+    private void loadAgentLibrary() {
+        try {
+            this.engine.setTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + BASE_THEORY + ".pl"))));
+        } catch (IOException e) {
+            System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
+        } catch (InvalidTheoryException e) {
+            System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
+        }
+
+        try {
+            final Library lib = this.engine.getLibrary("alice.tuprolog.lib.OOLibrary");
+            ((OOLibrary) lib).register(new Struct("randomGenerator"), this.randomGenerator);
+        } catch (InvalidObjectIdException e) {
+            System.err.println(this.getAgentName() + SEPARATOR + INVALID_OBJECT_MSG);
+        }
+    }
 
     /**
      * Initilizes the agent (puts in the theory his name).
