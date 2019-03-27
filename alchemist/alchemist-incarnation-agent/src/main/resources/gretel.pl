@@ -1,34 +1,30 @@
 init :-
     removeBelief(movement(_,_)),
     randomDirection(D),
-    addBelief(movement(0.025,D)),
+    randomSpeed(S),
+    addBelief(movement(S,D)),
     takeTuple(breadcrumb(hansel,here)),
-    randomSteps(P),
-    addBelief(counterStep(P)),
     addBelief(stopped(false)).
 
 onAddBelief(position(X,Y)) :-
     belief(stopped(false)),
-    removeBelief(counterStep(S)),
-    handlePosition(S,X,Y),
+    handlePosition(X,Y),
     takeTuple(breadcrumb(hansel,here)).
+
+onAddBelief(position(X,Y)) :-
+    belief(stopped(true)),
+    removeBelief(movement(_,D)),
+    addBelief(movement(0,D)).
 
 onAddBelief(position(X,Y)) :-
     true.
 
-handlePosition(S,X,Y) :-
-    S > 0,
-    S1 is S - 1,
-    addBelief(counterStep(S1)).
-
-handlePosition(S,X,Y) :-
-    S =< 0,
-    randomSteps(P),
-    addBelief(counterStep(P)),
+handlePosition(X,Y) :-
     removeBelief(movement(_,D)),
     randomDirection(RD),
     D1 is D - RD,
-    addBelief(movement(0.025,D1)).
+    randomSpeed(S),
+    addBelief(movement(S,D1)).
 
 onAddBelief(distance(hansel,ND,OD)) :-
     removeBelief(stopped(false)),
@@ -55,10 +51,6 @@ onRemoveBelief(counterStep(C)) :-
     true.
 
 onResponseMessage(msg(breadcrumb(hansel,here),X,Y)) :-
-    removeBelief(counterStep(_)),
-    addBelief(counterStep(30)),
-    removeBelief(movement(_,D)),
-    addBelief(movement(0.05,D)),
     changeDirection(X,Y).
 
 changeDirection(X2,Y2) :-
@@ -66,7 +58,8 @@ changeDirection(X2,Y2) :-
     DX is X2 - X1,
     DY is Y2 - Y1,
     calculateAtan(DY,DX,RAD),
-    removeBelief(movement(S,D)),
+    removeBelief(movement(_,_)),
+    randomSpeed(S),
     addBelief(movement(S,RAD)).
 
 calculateAtan(DY,DX,RAD) :-
@@ -95,11 +88,11 @@ calculateAtan(DY,DX,RAD) :-
     DY < 0,
     RAD is -3.14 / 2.
 
-randomSteps(R) :-
-    randomGenerator <- nextDouble returns X,
-    R is X * 50.
-
 randomDirection(R) :-
     randomGenerator <- nextDouble returns X,
     TMP is X * 3.14,
     R is TMP - 1.57.
+
+randomSpeed(R) :-
+    randomGenerator <- nextDouble returns X,
+    R is X * 0.3.

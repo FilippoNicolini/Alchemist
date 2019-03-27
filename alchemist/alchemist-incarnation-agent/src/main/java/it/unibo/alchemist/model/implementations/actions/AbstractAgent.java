@@ -11,6 +11,7 @@ import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Reaction;
 import kotlin.Triple;
+import org.apache.commons.math3.random.AbstractRandomGenerator;
 import org.apache.commons.math3.random.RandomGenerator;
 
 import java.io.File;
@@ -57,7 +58,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
     private final Queue<OutMessage> outbox = new LinkedList<>(); // Mailbox OUT queue
     private final Prolog engine = new Prolog(); // tuProlog engine
     private Reaction<Object> agentReaction; // Reference to reaction
-    private RandomGenerator randomGenerator; // Random generator of the reaction
+    private RandomGenerator agentRandomGenerator; // Random generator of the reaction
     private final Map<Term, String> beliefBaseChanges = new LinkedHashMap<>(); // Map where to save updated belief notifications
 
     /**
@@ -69,7 +70,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
     protected AbstractAgent(final String name, final Node<Object> node, final RandomGenerator rand) {
         super(node);
         this.agentName = name;
-        this.randomGenerator = rand;
+        this.agentRandomGenerator = rand;
 
         this.loadAgentLibrary();
     }
@@ -84,7 +85,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
     protected AbstractAgent(final String name, final Node<Object> node, final RandomGenerator rand, final Reaction<Object> reaction) {
         super(node);
         this.agentName = name;
-        this.randomGenerator = rand;
+        this.agentRandomGenerator = rand;
         this.agentReaction = reaction;
 
         this.loadAgentLibrary();
@@ -133,8 +134,8 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
      * Get the random generator of the agent.
      * @return random generator
      */
-    protected RandomGenerator getRandomGenerator() {
-        return this.randomGenerator;
+    protected RandomGenerator getAgentRandomGenerator() {
+        return this.agentRandomGenerator;
     }
 
     @Override
@@ -162,7 +163,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
 
         try {
             final Library lib = this.engine.getLibrary("alice.tuprolog.lib.OOLibrary");
-            ((OOLibrary) lib).register(new Struct("randomGenerator"), this.randomGenerator);
+            ((OOLibrary) lib).register(new Struct("randomGenerator"), this.agentRandomGenerator);
         } catch (InvalidObjectIdException e) {
             System.err.println(this.getAgentName() + SEPARATOR + INVALID_OBJECT_MSG);
         }

@@ -50,7 +50,7 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
 
     @Override
     public Node<Object> createNode(final RandomGenerator rand, final Environment<Object,P> env, final String param) {
-        return new AgentsContainerNode(param, (Environment<Object, Position<? extends Continuous2DEnvironment>>) env);
+        return new AgentsContainerNode(param, (Environment<Object, Position<? extends Continuous2DEnvironment>>) env, rand);
     }
 
     @Override

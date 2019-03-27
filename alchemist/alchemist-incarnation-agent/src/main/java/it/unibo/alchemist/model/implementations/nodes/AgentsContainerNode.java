@@ -8,6 +8,7 @@ import it.unibo.alchemist.model.implementations.times.DoubleTime;
 import it.unibo.alchemist.model.interfaces.Environment;
 import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Time;
+import org.apache.commons.math3.random.RandomGenerator;
 
 import java.util.*;
 
@@ -19,6 +20,7 @@ public class AgentsContainerNode extends AbstractNode<Object> {
     private final String param;
     private final Environment<Object, Position<? extends Continuous2DEnvironment>> environment;
     private final Map<String, AbstractAgent> agents = new LinkedHashMap<>();
+    private RandomGenerator randomGenerator;
 
     private double nodeDirectionAngle = 0.0; // [0-360] Direction zero means to point to the north
     private double nodeSpeed = 0.0; // Speed zero means that the node is stopped
@@ -29,9 +31,10 @@ public class AgentsContainerNode extends AbstractNode<Object> {
      * @param p is the param from the simulation configuration file.
      * @param env environment of node.
      */
-    public AgentsContainerNode(final String p, final Environment<Object, Position<? extends Continuous2DEnvironment>> env) {
+    public AgentsContainerNode(final String p, final Environment<Object, Position<? extends Continuous2DEnvironment>> env, final RandomGenerator rand) {
         super(env);
         this.environment = env;
+        this.randomGenerator = rand;
         this.param = p;
         this.lastNodePositionUpdateTau = new DoubleTime(); // Initialize the last update to time zero
         System.out.println("ENVIRONMENT CLASS: " + this.environment.getClass().toString());
@@ -39,7 +42,7 @@ public class AgentsContainerNode extends AbstractNode<Object> {
 
     @Override
     protected Object createT() {
-        return new AgentsContainerNode(this.param, this.environment);
+        return new AgentsContainerNode(this.param, this.environment, this.randomGenerator);
     }
 
     /**
@@ -113,7 +116,7 @@ public class AgentsContainerNode extends AbstractNode<Object> {
      */
     public void changeNodePosition(final Time updateTau) {
         final Position currentPosition = this.getNodePosition();
-        final double radAngle =  this.nodeDirectionAngle;
+        final double radAngle = this.nodeDirectionAngle;
         final double radius = (updateTau.toDouble() - this.lastNodePositionUpdateTau.toDouble()) * this.nodeSpeed; // radius = space covered = time spent * speed
         final double x = currentPosition.getCoordinate(0) + radius * Math.cos(radAngle);
         final double y = currentPosition.getCoordinate(1) + radius * Math.sin(radAngle);

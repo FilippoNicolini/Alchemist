@@ -51,8 +51,8 @@ public class Blackboard extends AbstractAgent {
     }
 
     @Override
-    public Action<Object> cloneAction(final Node<Object> n, final Reaction<Object> r) {
-        return new Blackboard("cloned_" + this.getAgentName(), getNode(), getRandomGenerator());
+    public Action<Object> cloneAction(final Node<Object> node, final Reaction<Object> reaction) {
+        return new Blackboard("cloned_" + this.getAgentName(), node, this.getAgentRandomGenerator());
     }
 
     @Override
