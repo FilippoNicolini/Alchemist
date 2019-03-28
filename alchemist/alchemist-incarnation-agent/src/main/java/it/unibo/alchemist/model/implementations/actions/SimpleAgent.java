@@ -17,9 +17,6 @@ import java.io.IOException;
  */
 public class SimpleAgent extends AbstractAgent {
 
-    private double counter = 0.0;
-    private double sum = 0.0;
-
     /**
      * Constructor for the agent.
      * @param name name of the agent.

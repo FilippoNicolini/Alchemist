@@ -11,7 +11,7 @@ import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Reaction;
 import kotlin.Triple;
-import org.apache.commons.math3.random.AbstractRandomGenerator;
+import org.apache.commons.math3.distribution.LevyDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 
 import java.io.File;
@@ -59,6 +59,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
     private final Prolog engine = new Prolog(); // tuProlog engine
     private Reaction<Object> agentReaction; // Reference to reaction
     private RandomGenerator agentRandomGenerator; // Random generator of the reaction
+    private LevyDistribution levyDistribution;
     private final Map<Term, String> beliefBaseChanges = new LinkedHashMap<>(); // Map where to save updated belief notifications
 
     /**
@@ -162,8 +163,10 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         }
 
         try {
+            this.levyDistribution = new LevyDistribution(this.agentRandomGenerator, 0, 0.5);
             final Library lib = this.engine.getLibrary("alice.tuprolog.lib.OOLibrary");
             ((OOLibrary) lib).register(new Struct("randomGenerator"), this.agentRandomGenerator);
+            ((OOLibrary) lib).register(new Struct("levyDistribution"), this.levyDistribution);
         } catch (InvalidObjectIdException e) {
             System.err.println(this.getAgentName() + SEPARATOR + INVALID_OBJECT_MSG);
         }

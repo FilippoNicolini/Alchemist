@@ -3,11 +3,14 @@ init :-
     randomDirection(D),
     randomSpeed(S),
     addBelief(movement(S,D)),
+    addBelief(counter(0)),
     takeTuple(breadcrumb(hansel,here)),
     addBelief(stopped(false)).
 
 onAddBelief(position(X,Y)) :-
     belief(stopped(false)),
+    belief(counter(C)),
+    C =< 0,
     handlePosition(X,Y),
     takeTuple(breadcrumb(hansel,here)).
 
@@ -17,6 +20,9 @@ onAddBelief(position(X,Y)) :-
     addBelief(movement(0,D)).
 
 onAddBelief(position(X,Y)) :-
+    removeBelief(counter(C)),
+    C1 is C - 1,
+    addBelief(counter(C1)),
     true.
 
 handlePosition(X,Y) :-
@@ -44,13 +50,15 @@ onAddBelief(movement(_,_)) :-
 onRemoveBelief(movement(_,_)) :-
     true.
 
-onAddBelief(counterStep(C)) :-
+onAddBelief(counter(C)) :-
     true.
 
-onRemoveBelief(counterStep(C)) :-
+onRemoveBelief(counter(C)) :-
     true.
 
 onResponseMessage(msg(breadcrumb(hansel,here),X,Y)) :-
+    removeBelief(counter(_)),
+    addBelief(counter(5)),
     changeDirection(X,Y).
 
 changeDirection(X2,Y2) :-
@@ -89,10 +97,11 @@ calculateAtan(DY,DX,RAD) :-
     RAD is -3.14 / 2.
 
 randomDirection(R) :-
-    randomGenerator <- nextDouble returns X,
-    TMP is X * 3.14,
-    R is TMP - 1.57.
+    randomGenerator <- nextDouble returns RAND,
+    levyDistribution <- density(RAND) returns X,
+    R is X * 6.28.
 
 randomSpeed(R) :-
-    randomGenerator <- nextDouble returns X,
-    R is X * 0.3.
+    randomGenerator <- nextDouble returns RAND,
+    levyDistribution <- density(RAND) returns X,
+    R is X * 0.5.
