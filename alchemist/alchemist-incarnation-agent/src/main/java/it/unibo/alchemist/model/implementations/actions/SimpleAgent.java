@@ -32,9 +32,11 @@ public class SimpleAgent extends AbstractAgent {
         try {
             this.getEngine().addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + this.getAgentName() + ".pl"))));
         } catch (IOException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
+            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
+//            System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
         } catch (InvalidTheoryException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
+            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
+//            System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
         }
     }
 

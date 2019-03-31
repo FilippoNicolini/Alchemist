@@ -44,9 +44,11 @@ public class Blackboard extends AbstractAgent {
         try {
             this.getEngine().addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + this.getAgentName() + ".pl"))));
         } catch (IOException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
+            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
+//            System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
         } catch (InvalidTheoryException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
+            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
+//            System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
         }
     }
 
@@ -135,7 +137,8 @@ public class Blackboard extends AbstractAgent {
                     getNode().setConcentration(new SimpleMolecule("breadcrumb"), 0);
                     this.handlePendingRequests();
                 } else {
-                    System.err.println("Malformed template to write on blackboard");
+                    throw new IllegalArgumentException("Malformed template to write on blackboard");
+//                    System.err.println("Malformed template to write on blackboard");
                 }
             }
         } else {
@@ -143,7 +146,8 @@ public class Blackboard extends AbstractAgent {
             if (msgToWrite.isSuccess()) {
                 this.handlePendingRequests();
             } else {
-                System.err.println("Malformed template to write on blackboard");
+                throw new IllegalArgumentException("Malformed template to write on blackboard");
+//                System.err.println("Malformed template to write on blackboard");
             }
         }
     }
@@ -172,7 +176,8 @@ public class Blackboard extends AbstractAgent {
                 }
             }
         } catch (NoSolutionException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to read on blackboard.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to read on blackboard.");
+//            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to read on blackboard.");
         }
     }
 
@@ -215,7 +220,8 @@ public class Blackboard extends AbstractAgent {
                                 new Double(nodePosition.getCoordinate(1))));
                     }
                 } catch (UnknownVarException e) {
-                    System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to match take on blackboard.");
+                    throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to match take on blackboard.");
+//                    System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to match take on blackboard.");
                 }
 
             } else {
@@ -225,7 +231,8 @@ public class Blackboard extends AbstractAgent {
                 }
             }
         } catch (NoSolutionException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to take on blackboard.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to take on blackboard.");
+//            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to take on blackboard.");
         }
     }
 

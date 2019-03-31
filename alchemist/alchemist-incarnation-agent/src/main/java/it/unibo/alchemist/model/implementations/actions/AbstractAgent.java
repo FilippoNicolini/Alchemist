@@ -16,6 +16,7 @@ import org.apache.commons.math3.random.RandomGenerator;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -157,9 +158,11 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         try {
             this.engine.setTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + BASE_THEORY + ".pl"))));
         } catch (IOException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
+            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
+//            System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
         } catch (InvalidTheoryException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
+            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
+//            System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
         }
 
         try {
@@ -168,7 +171,8 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
             ((OOLibrary) lib).register(new Struct("randomGenerator"), this.agentRandomGenerator);
             ((OOLibrary) lib).register(new Struct("levyDistribution"), this.levyDistribution);
         } catch (InvalidObjectIdException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + INVALID_OBJECT_MSG);
+            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + INVALID_OBJECT_MSG);
+//            System.err.println(this.getAgentName() + SEPARATOR + INVALID_OBJECT_MSG);
         }
     }
 
@@ -285,11 +289,14 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                 }
             }
         } catch (NoSolutionException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " outgoing.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " outgoing.");
+//            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " outgoing.");
         } catch (UnknownVarException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " outgoing.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " outgoing.");
+//            System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " outgoing.");
         } catch (NoMoreSolutionException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " outgoing.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " outgoing.");
+//            System.err.println(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " outgoing.");
         }
     }
 
@@ -366,11 +373,14 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                 }
             }
         } catch (NoSolutionException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " addBelief/removeBelief.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " addBelief/removeBelief.");
+//            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " addBelief/removeBelief.");
         } catch (UnknownVarException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " addBelief/removeBelief.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " addBelief/removeBelief.");
+//            System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " addBelief/removeBelief.");
         } catch (NoMoreSolutionException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " addBelief/removeBelief.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " addBelief/removeBelief.");
+//            System.err.println(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " addBelief/removeBelief.");
         }
     }
 
@@ -473,12 +483,15 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                         solvedAction = null;
                     }
                 }
-            } catch (NoMoreSolutionException e) {
-                System.err.println(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " " + tt.getThird() + ".");
             } catch (NoSolutionException e) {
-                System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " " + tt.getThird() + ".");
+                throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " " + tt.getThird() + ".");
+//            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " " + tt.getThird() + ".");
             } catch (UnknownVarException e) {
-                System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " " + tt.getThird() + ".");
+                throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " " + tt.getThird() + ".");
+//            System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " " + tt.getThird() + ".");
+            } catch (NoMoreSolutionException e) {
+                throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " " + tt.getThird() + ".");
+//            System.err.println(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " " + tt.getThird() + ".");
             }
         });
     }
@@ -543,12 +556,15 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                     this.beliefBaseChanges.put(distanceBelief, ADD_NOTIFICATION);
                 });
             }
-        } catch (NoMoreSolutionException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " to update agents distances.");
         } catch (NoSolutionException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to update agents distances.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to update agents distances.");
+//            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to update agents distances.");
         } catch (UnknownVarException e) {
-            System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to update agents distances.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to update agents distances.");
+//            System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to update agents distances.");
+        } catch (NoMoreSolutionException e) {
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " to update agents distances.");
+//            System.err.println(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " to update agents distances.");
         }
     }
 

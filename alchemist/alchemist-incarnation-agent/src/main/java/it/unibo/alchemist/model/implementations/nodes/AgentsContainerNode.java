@@ -190,7 +190,7 @@ public class AgentsContainerNode extends AbstractNode<Object> {
     }
 
     /**
-     * Retrieve a list of blackboard neighbors
+     * Retrieve a list of blackboard neighbors.
      * @return list of blackboards
      */
     public List<Blackboard> getBlackboardNeighborhood() {
