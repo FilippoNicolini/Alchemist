@@ -3,8 +3,9 @@ package it.unibo.alchemist.model;
 import com.google.common.collect.Lists;
 import it.unibo.alchemist.model.implementations.actions.AbstractAgent;
 import it.unibo.alchemist.model.implementations.actions.Blackboard;
-import it.unibo.alchemist.model.implementations.actions.SimpleAgent;
+import it.unibo.alchemist.model.implementations.actions.MovementAgent;
 import it.unibo.alchemist.model.implementations.actions.PostmanAgent;
+import it.unibo.alchemist.model.implementations.actions.SimpleAgent;
 import it.unibo.alchemist.model.implementations.conditions.AbstractCondition;
 import it.unibo.alchemist.model.implementations.environments.Continuous2DEnvironment;
 import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule;
@@ -50,7 +51,21 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
 
     @Override
     public Node<Object> createNode(final RandomGenerator rand, final Environment<Object,P> env, final String param) {
-        return new AgentsContainerNode(param, (Environment<Object, Position<? extends Continuous2DEnvironment>>) env, rand);
+        // create the node
+        final Node<Object> node = new AgentsContainerNode(param, (Environment<Object, Position<? extends Continuous2DEnvironment>>) env, rand);
+
+        // create the time distribution for the reaction
+        final TimeDistribution<Object> td = this.createTimeDistribution(rand, env, node, "1");
+
+        // create the default reaction for the node movement and assign it the condition and the action
+        final Reaction<Object> reaction = new AgentReaction("movementReact", node, td);
+        final Condition<Object> condition = this.createCondition(rand, env, node, td, reaction, "");
+        final Action<Object> action = new MovementAgent("movement", node, rand, reaction);
+        reaction.setConditions(Lists.newArrayList(condition));
+        reaction.setActions(Lists.newArrayList(action));
+        // add the reaction to the node
+        node.addReaction(reaction);
+        return node;
     }
 
     @Override

@@ -15,6 +15,7 @@ public class PostmanAgent extends AbstractAgent {
      * Constructor for the agent.
      * @param name name of the agent.
      * @param node node where the agent is placed.
+     * @param rand random generator.
      */
     public PostmanAgent(final String name, final Node<Object> node, final RandomGenerator rand) {
         super(name, node, rand);

@@ -45,10 +45,8 @@ public class Blackboard extends AbstractAgent {
             this.getEngine().addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + this.getAgentName() + ".pl"))));
         } catch (IOException e) {
             throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
-//            System.err.println(this.getAgentName() + SEPARATOR + IO_MSG);
         } catch (InvalidTheoryException e) {
-            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
-//            System.err.println(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
+            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
         }
     }
 
@@ -60,7 +58,7 @@ public class Blackboard extends AbstractAgent {
     @Override
     public void execute() {
         if (!this.isInitialized()) {
-            this.inizializeAgent();
+            this.initializeAgent();
 
             System.out.println("Nodo: " + getNode().getId() + " || agent " + this.getAgentName() + " inizializzato");
 

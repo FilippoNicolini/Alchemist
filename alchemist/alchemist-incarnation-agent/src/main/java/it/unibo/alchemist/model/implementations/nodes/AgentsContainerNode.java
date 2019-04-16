@@ -169,6 +169,14 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         return agentsDistances;
     }
 
+    public void test(final String msg) {
+        System.out.println("test: " + msg);
+    }
+
+    //*********************************************//
+    //**        Spatial Tuples Extension         **//
+    //*********************************************//
+
     /**
      * Retrieve the nearest blackboard instance if presents in the neighborhood.
      * @return agent instance if founded.
