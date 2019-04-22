@@ -10,7 +10,10 @@ import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Time;
 import org.apache.commons.math3.random.RandomGenerator;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Node for Agent Incarnation.
@@ -86,11 +89,35 @@ public class AgentsContainerNode extends AbstractNode<Object> {
     }
 
     /**
-     * Update the speed of the node.
+     * Modify the direction of the node.
+     * @param angle value to set (in radians)
+     */
+    public void changeDirectionAngle(final double angle) {
+        this.changeDirectionAngle(angle, false);
+    }
+
+    /**
+     * Modify the direction of the node.
+     * @param angle value to set (in radians)
+     */
+    public void changeDirectionAngle(final String angle) {
+        this.changeDirectionAngle(Double.parseDouble(angle), false);
+    }
+
+    /**
+     * Modify the speed of the node.
      * @param speed value of the speed.
      */
     public void changeNodeSpeed(final double speed) {
         this.nodeSpeed = speed;
+    }
+
+    /**
+     * Modify the speed of the node.
+     * @param speed value of the speed.
+     */
+    public void changeNodeSpeed(final String speed) {
+        this.changeNodeSpeed(Double.parseDouble(speed));
     }
 
     /**
@@ -105,7 +132,7 @@ public class AgentsContainerNode extends AbstractNode<Object> {
      * Get the map that contains references of the agents.
      * @return map of the agents.
      */
-    public Map<String, AbstractAgent> getAgentsMap() {
+    private Map<String, AbstractAgent> getAgentsMap() {
         return this.agents;
     }
 
@@ -169,6 +196,17 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         return agentsDistances;
     }
 
+    /**
+     * Trigger the agent plans for the position update and for the distances between agents.
+     */
+    public void updateAgentsPosition() {
+        this.agents.forEach((agentName, agent) -> {
+            agent.updateAgentPosition(this.getNodePosition());
+            agent.updateAgentsDistances();
+        });
+    }
+
+    // TODO eliminare
     public void test(final String msg) {
         System.out.println("test: " + msg);
     }

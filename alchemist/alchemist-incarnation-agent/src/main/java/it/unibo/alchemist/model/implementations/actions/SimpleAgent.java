@@ -59,7 +59,7 @@ public class SimpleAgent extends AbstractAgent {
             this.readMessage();
 
             // Tuple space extension
-            //this.retrieveTuples();
+            this.retrieveTuples();
 
             this.executeIntention();
         }

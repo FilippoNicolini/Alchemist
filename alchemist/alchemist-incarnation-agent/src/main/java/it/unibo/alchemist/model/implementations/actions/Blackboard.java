@@ -35,6 +35,7 @@ public class Blackboard extends AbstractAgent {
      * Constructor for blackboard.
      * @param blackboardName name of the blackboard.
      * @param node node where the agent is placed.
+     * @param rand random generator.
      */
     public Blackboard(final String blackboardName, final Node<Object> node, final RandomGenerator rand) {
         super(blackboardName, node, rand);
@@ -60,7 +61,7 @@ public class Blackboard extends AbstractAgent {
         if (!this.isInitialized()) {
             this.initializeAgent();
 
-            System.out.println("Nodo: " + getNode().getId() + " || agent " + this.getAgentName() + " inizializzato");
+            System.out.println("Nodo: " + this.getNode().getId() + " || agent " + this.getAgentName() + " inizializzato");
 
             this.initReasoning();
         } else {
@@ -72,9 +73,9 @@ public class Blackboard extends AbstractAgent {
     }
 
 
-    //------------------------------------------
-    // Agent's internal action
-    //------------------------------------------
+    //*********************************************//
+    //**         Agent's internal action         **//
+    //*********************************************//
 
     /**
      * Handles new requests received from the blackboard.
@@ -136,7 +137,6 @@ public class Blackboard extends AbstractAgent {
                     this.handlePendingRequests();
                 } else {
                     throw new IllegalArgumentException("Malformed template to write on blackboard");
-//                    System.err.println("Malformed template to write on blackboard");
                 }
             }
         } else {
@@ -145,7 +145,6 @@ public class Blackboard extends AbstractAgent {
                 this.handlePendingRequests();
             } else {
                 throw new IllegalArgumentException("Malformed template to write on blackboard");
-//                System.err.println("Malformed template to write on blackboard");
             }
         }
     }
@@ -174,8 +173,7 @@ public class Blackboard extends AbstractAgent {
                 }
             }
         } catch (NoSolutionException e) {
-            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to read on blackboard.");
-//            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to read on blackboard.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " read on blackboard.");
         }
     }
 
@@ -218,8 +216,7 @@ public class Blackboard extends AbstractAgent {
                                 new Double(nodePosition.getCoordinate(1))));
                     }
                 } catch (UnknownVarException e) {
-                    throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to match take on blackboard.");
-//                    System.err.println(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to match take on blackboard.");
+                    throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " take on blackboard.");
                 }
 
             } else {
@@ -229,15 +226,14 @@ public class Blackboard extends AbstractAgent {
                 }
             }
         } catch (NoSolutionException e) {
-            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to take on blackboard.");
-//            System.err.println(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to take on blackboard.");
+            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " take on blackboard.");
         }
     }
 
 
-    //------------------------------------------
-    // Agent's external action
-    //------------------------------------------
+    //*********************************************//
+    //**         Agent's external action         **//
+    //*********************************************//
 
     /**
      * Gets values and creates a request to put in the incoming queue.

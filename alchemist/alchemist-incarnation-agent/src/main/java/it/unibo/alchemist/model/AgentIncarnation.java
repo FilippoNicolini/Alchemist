@@ -51,19 +51,19 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
 
     @Override
     public Node<Object> createNode(final RandomGenerator rand, final Environment<Object,P> env, final String param) {
-        // create the node
+        // Create the node
         final Node<Object> node = new AgentsContainerNode(param, (Environment<Object, Position<? extends Continuous2DEnvironment>>) env, rand);
 
-        // create the time distribution for the reaction
+        // Create the time distribution for the reaction
         final TimeDistribution<Object> td = this.createTimeDistribution(rand, env, node, "1");
 
-        // create the default reaction for the node movement and assign it the condition and the action
+        // Create the default reaction for the node movement and assign it the condition and the action
         final Reaction<Object> reaction = new AgentReaction("movementReact", node, td);
         final Condition<Object> condition = this.createCondition(rand, env, node, td, reaction, "");
         final Action<Object> action = new MovementAgent("movement", node, rand, reaction);
         reaction.setConditions(Lists.newArrayList(condition));
         reaction.setActions(Lists.newArrayList(action));
-        // add the reaction to the node
+        // Add the reaction to the node
         node.addReaction(reaction);
         return node;
     }
@@ -96,7 +96,7 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
         return new AbstractCondition<Object>(node) {
             @Override
             public Context getContext() {
-                // Defines the depth of an action and it affects the performances
+                // Define the depth of an action and it affects the performances
                 return Context.LOCAL;// TODO va bene come profondità?
             }
 
