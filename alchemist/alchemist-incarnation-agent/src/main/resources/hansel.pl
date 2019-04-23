@@ -11,9 +11,6 @@ onAddBelief(position(X,Y)) :-
     removeBelief(counter(C1,C2)),
     handlePosition(C1,C2,X,Y).
 
-onAddBelief(position(X,Y)) :-
-    true.
-
 handlePosition(C1,C2,X,Y) :-
     C1 < 300,
     C2 < 10,
@@ -28,6 +25,7 @@ handlePosition(C1,C2,X,Y) :-
     C2 >= 10,
     addBelief(counter(C1N,0)),
     belief(spiralCorner(V)),
+    node <- getNodeDirectionAngle returns D,
     D1 is D + V,
     node <- changeDirectionAngle(D1).
 
@@ -40,34 +38,10 @@ handlePosition(C1,C2,X,Y) :-
     V1 is V + TEMP,
     addBelief(spiralCorner(V1)).
 
-onAddBelief(distance(A,ND,OD)) :-
-    true.
-
 onAddBelief(distance(gretel,ND)) :-
     removeBelief(stopped(false)),
     addBelief(stopped(true)),
     node <- changeNodeSpeed(0).
-
-onAddBelief(distance(A,ND)) :-
-    true.
-
-onAddBelief(movement(_,_)) :-
-    true.
-
-onRemoveBelief(movement(_,_)) :-
-    true.
-
-onAddBelief(counter(C1,C2)) :-
-    true.
-
-onRemoveBelief(counter(C1,C2)) :-
-    true.
-
-onAddBelief(spiralCorner(V)) :-
-    true.
-
-onRemoveBelief(spiralCorner(V)) :-
-    true.
 
 onResponseMessage(msg(stop(hansel),X,Y)) :-
     node <- changeNodeSpeed(0),

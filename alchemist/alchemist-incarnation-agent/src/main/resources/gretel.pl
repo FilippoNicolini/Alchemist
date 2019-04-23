@@ -9,7 +9,8 @@ init :-
 
 onAddBelief(position(X,Y)) :-
     belief(stopped(false)),
-    aggregate(belief(counter(C)), C =< 0),
+    belief(counter(C)),
+    C =< 0,
     handlePosition(X,Y),
     takeTuple(breadcrumb(hansel,here)).
 
@@ -23,11 +24,12 @@ onAddBelief(position(X,Y)) :-
     addBelief(counter(C1)).
 
 handlePosition(X,Y) :-
+    node <- getNodeDirectionAngle returns D,
     randomDirection(RD),
     D1 is D - RD,
     randomSpeed(S),
     node <- changeNodeSpeed(S),
-    node <- changeDirectionAngle(D).
+    node <- changeDirectionAngle(D1).
 
 onAddBelief(distance(hansel,ND,OD)) :-
     removeBelief(stopped(false)),

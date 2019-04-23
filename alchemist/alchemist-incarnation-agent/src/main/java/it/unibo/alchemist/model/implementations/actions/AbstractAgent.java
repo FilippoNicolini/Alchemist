@@ -354,6 +354,20 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
             final Term intentionID = Term.createTerm(Objects.requireNonNull(id));
             this.intentionsStack.add(id);
 
+//            try {
+//                SolveInfo s = this.engine.solve(new Struct("intention", intentionID, new Var("X")));
+//                if (s.isSuccess()) {
+//                    System.out.println("FILO !! " + id + " intenzione da esguire " + s.getTerm("X"));
+//                } else {
+//                    System.err.println("FILO !! Errore recupero intenzione");
+//                    this.intentionsStack.forEach(str -> {
+//                        System.out.println("ELEMENTO STACK JAVA: " + str);
+//                    });
+//                }
+//            } catch (NoSolutionException | UnknownVarException e) {
+//                e.printStackTrace();
+//            }
+
             final Struct execIntention = new Struct("execute", intentionID);
             final SolveInfo solveExecIntention = this.engine.solve(execIntention);
             if (!solveExecIntention.isSuccess()) {
@@ -566,7 +580,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                 }
 
                 if (solveRetrieveDistances.hasOpenAlternatives()) {
-                    solveRetrieveDistances = this.engine.solveNext();
+                    solveRetrieveDistances = this.engine.solve(retrieveDistances);
                 } else {
                     solveRetrieveDistances = null;
                 }
@@ -597,9 +611,10 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
             throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to update agent distances.");
         } catch (UnknownVarException e) {
             throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to update agent distances.");
-        } catch (NoMoreSolutionException e) {
-            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " to update agent distances.");
         }
+//        catch (NoMoreSolutionException e) {
+//            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " to update agent distances.");
+//        }
     }
 
     //*********************************************//

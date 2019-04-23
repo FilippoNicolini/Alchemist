@@ -30,41 +30,42 @@ execute(I) :-
     agent <- removeCompletedIntention(I).
 
 execute(I) :-
-    retract(intention(I, [ACTION | REMINDER])),
-    assert(intention(I, REMINDER)),
-    agent <- test(ACTION),
-    execute(I, ACTION).
-
-execute(I, achievement(GOAL)) :-
+    retract(intention(I, [ACTION | STACK])),
+    execute(I, ACTION, TOP),
     !,
-    add_goal(I, achievement(GOAL)).
+    append(TOP, STACK, NEWSTACK),
+    assertz(intention(I, NEWSTACK)).
 
-add_goal(I, achievement(GOAL)) :-
+execute(I, achievement(GOAL), TOP) :-
     !,
-    retract(intention(I, STACK)),
-    '<-'(achievement(GOAL), GUARD, BODY),
-    call(GUARD),
-    append(BODY, STACK, NEWSTACK),
-    assert(intention(I, NEWSTACK)).
+    add_goal(I, achievement(GOAL), TOP),
+    !.
 
-execute(I, concurrent(achievement(GOAL))) :-
+add_goal(I, achievement(GOAL), TOP) :-
     !,
     '<-'(achievement(GOAL), GUARD, BODY),
     call(GUARD),
-    append(BODY, [], NEWSTACK),
-    agent <- generateIntentionId returns ID,
-    assert(intention(ID, NEWSTACK)),
-    agent <- insertIntention(ID).
+    !.
 
-execute(I, ACTION) :-
+%execute(I, concurrent(achievement(GOAL))) :-
+%    !,
+%    '<-'(achievement(GOAL), GUARD, BODY),
+%    call(GUARD),
+%    append(BODY, [], NEWSTACK),
+%    agent <- generateIntentionId returns ID,
+%    assert(intention(ID, NEWSTACK)),
+%    agent <- insertIntention(ID).
+
+execute(I, ACTION, []) :-
     is_internal(ACTION),
     agent <- executeInternalAction(ACTION).
 
 is_internal(iSend(SENDER,MESSAGE)).
 
-execute(I, ACTION) :-
+execute(I, ACTION, []) :-
     is_external(ACTION),
     node <- executeExternalAction(ACTION).
 
-execute(I, ACTION) :-
-    ACTION.
+execute(I, ANYTHING, []) :-
+    !,
+    call(ANYTHING).
