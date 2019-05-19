@@ -1,0 +1,32 @@
+# Goldminers
+
+incarnation: agent
+
+network-model:
+  type: ConnectWithinDistance
+  parameters: [2]
+
+displacements:
+  - in: {type: Circle, parameters: [3,2,2,0.2]}
+    programs:
+      -
+        - time-distribution: 10
+          program: "miner"
+
+  - in: {type: Circle, parameters: [1,2,2,0.2]}
+    programs:
+      -
+        - time-distribution: 10
+          program: "deposit"
+
+  - in: {type: Circle, parameters: [1,2,2,0.2]}
+    programs:
+      -
+        - time-distribution: 10
+          program: "postman"
+
+  - in: {type: Circle, parameters: [10,2,2,5]}
+    programs:
+      -
+        - time-distribution: 10
+          program: "goldmine"

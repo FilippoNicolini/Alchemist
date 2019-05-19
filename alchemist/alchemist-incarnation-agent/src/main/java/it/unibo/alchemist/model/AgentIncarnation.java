@@ -3,6 +3,7 @@ package it.unibo.alchemist.model;
 import com.google.common.collect.Lists;
 import it.unibo.alchemist.model.implementations.actions.AbstractAgent;
 import it.unibo.alchemist.model.implementations.actions.Blackboard;
+import it.unibo.alchemist.model.implementations.actions.Goldmine;
 import it.unibo.alchemist.model.implementations.actions.MovementAgent;
 import it.unibo.alchemist.model.implementations.actions.PostmanAgent;
 import it.unibo.alchemist.model.implementations.actions.SimpleAgent;
@@ -27,12 +28,14 @@ import it.unibo.alchemist.model.interfaces.TimeDistribution;
 
 import org.apache.commons.math3.random.RandomGenerator;
 
-
-
+/**
+ * Class that implement agent incarnation.
+ */
 public class AgentIncarnation<P extends Position<? extends P>> implements Incarnation<Object, P> {
 
     public final static String POSTMAN_AGENT_NAME = "postman";
     public final static String BLACKBOARD_AGENT_NAME = "blackboard";
+    public final static String GOLDMINE_AGENT_NAME = "goldmine";
 
     @Override
     public double getProperty(final Node<Object> node, final Molecule mol, final String prop) {
@@ -50,7 +53,7 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
     }
 
     @Override
-    public Node<Object> createNode(final RandomGenerator rand, final Environment<Object,P> env, final String param) {
+    public Node<Object> createNode(final RandomGenerator rand, final Environment<Object, P> env, final String param) {
         // Create the node
         final Node<Object> node = new AgentsContainerNode(param, (Environment<Object, Position<? extends Continuous2DEnvironment>>) env, rand);
 
@@ -121,8 +124,10 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
             action = new PostmanAgent(param, node, rand);
         } else if (param.contains(BLACKBOARD_AGENT_NAME)) {
             action = new Blackboard(param, node, rand);
+        } else if (param.contains(GOLDMINE_AGENT_NAME)) {
+            action = new Goldmine(param, node, rand);
         } else {
-            action = new SimpleAgent(param, node, rand, reaction); // Ping and Pong agents are built with the same class
+            action = new SimpleAgent(param, node, rand, reaction);
         }
         return action;
     }

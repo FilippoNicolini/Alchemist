@@ -1,8 +1,8 @@
 package it.unibo.alchemist.model.implementations.nodes;
 
-import it.unibo.alchemist.model.AgentIncarnation;
 import it.unibo.alchemist.model.implementations.actions.AbstractAgent;
-import it.unibo.alchemist.model.implementations.actions.Blackboard;
+import it.unibo.alchemist.model.implementations.actions.AbstractSpatialTuple;
+import it.unibo.alchemist.model.implementations.actions.PostmanAgent;
 import it.unibo.alchemist.model.implementations.environments.Continuous2DEnvironment;
 import it.unibo.alchemist.model.implementations.times.DoubleTime;
 import it.unibo.alchemist.model.interfaces.Environment;
@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Node for Agent Incarnation.
@@ -33,6 +34,7 @@ public class AgentsContainerNode extends AbstractNode<Object> {
      * Constructor for the agents container.
      * @param p is the param from the simulation configuration file.
      * @param env environment of node.
+     * @param rand random generator.
      */
     public AgentsContainerNode(final String p, final Environment<Object, Position<? extends Continuous2DEnvironment>> env, final RandomGenerator rand) {
         super(env);
@@ -186,9 +188,9 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         this.environment.getNeighborhood(this).getNeighbors().forEach(node -> {
             // Calculates the distance between nodes
             final double distance = this.environment.getDistanceBetweenNodes(this, node);
-            // Sets the distance for each agent inside the node (excluding the blackboards)
+            // Sets the distance for each agent inside the node (excluding the spatial tuple)
             ((AgentsContainerNode) node).getAgentsMap().forEach((strAgentName, agent) -> {
-                if (!agent.getClass().equals(Blackboard.class)) {
+                if (!AbstractSpatialTuple.class.isAssignableFrom(agent.getClass())) {
                     agentsDistances.put(strAgentName, distance);
                 }
             });
@@ -201,8 +203,10 @@ public class AgentsContainerNode extends AbstractNode<Object> {
      */
     public void updateAgentsPosition() {
         this.agents.forEach((agentName, agent) -> {
-            agent.updateAgentPosition(this.getNodePosition());
-            agent.updateAgentsDistances();
+            if (!AbstractSpatialTuple.class.isAssignableFrom(agent.getClass()) || !(agent instanceof PostmanAgent)) {
+                agent.updateAgentPosition(this.getNodePosition());
+                agent.updateAgentsDistances();
+            }
         });
     }
 
@@ -216,39 +220,43 @@ public class AgentsContainerNode extends AbstractNode<Object> {
     //*********************************************//
 
     /**
-     * Retrieve the nearest blackboard instance if presents in the neighborhood.
+     * Retrieve the nearest spatialTuple instance if presents in the neighborhood.
      * @return agent instance if founded.
      */
-    public AbstractAgent getNearestBlackboard() {
-        AbstractAgent nearestBlackboard = null;
+    public AbstractSpatialTuple getNearestSpatialTuple() {
+        AbstractSpatialTuple nearestSpatialTuple = null;
         double minDist = Double.MAX_VALUE;
 
         // For each neighbor node
         for (Object obj : this.environment.getNeighborhood(this).getNeighbors()) {
             final AgentsContainerNode node = (AgentsContainerNode) obj;
             final double currDist = this.environment.getDistanceBetweenNodes(this, node);
-            if (node.getAgentsMap().keySet().contains(AgentIncarnation.BLACKBOARD_AGENT_NAME) && currDist < minDist) {
+            final List<AbstractAgent> containedSpatialTuple = node.getAgentsMap().values()
+                    .stream()
+                    .filter(a -> AbstractSpatialTuple.class.isAssignableFrom(a.getClass()))
+                    .collect(Collectors.toList());
+            if (containedSpatialTuple.size() > 0 && currDist < minDist) {
                 minDist = currDist;
-                nearestBlackboard = node.getAgentsMap().get(AgentIncarnation.BLACKBOARD_AGENT_NAME);
+                nearestSpatialTuple = (AbstractSpatialTuple) containedSpatialTuple.get(0);
             }
         }
-        return nearestBlackboard;
+        return nearestSpatialTuple;
     }
 
     /**
-     * Retrieve a list of blackboard neighbors.
-     * @return list of blackboards
+     * Retrieve a list of spatial tuple neighbors.
+     * @return list of spatial tuple
      */
-    public List<Blackboard> getBlackboardNeighborhood() {
-        final List<Blackboard> blackboardNeighborhood = new ArrayList<>();
+    public List<AbstractSpatialTuple> getSpatialTupleNeighborhood() {
+        final List<AbstractSpatialTuple> spatialTupleNeighborhood = new ArrayList<>();
         // For each neighbor node
         for (Object obj : this.environment.getNeighborhood(this).getNeighbors()) {
             ((AgentsContainerNode) obj).getAgentsMap().forEach((strAgentName, agent) -> {
-                if (agent.getClass().equals(Blackboard.class)) {
-                    blackboardNeighborhood.add(((Blackboard) agent));
+                if (AbstractSpatialTuple.class.isAssignableFrom(agent.getClass())) {
+                    spatialTupleNeighborhood.add(((AbstractSpatialTuple) agent));
                 }
             });
         }
-        return blackboardNeighborhood;
+        return spatialTupleNeighborhood;
     }
 }

@@ -62,6 +62,8 @@ execute(I, ACTION, []) :-
 
 is_internal(iSend(SENDER,MESSAGE)).
 
+is_internal(iPrint(MESSAGE)).
+
 execute(I, ACTION, []) :-
     is_external(ACTION),
     node <- executeExternalAction(ACTION).

@@ -19,17 +19,12 @@ import org.apache.commons.math3.random.RandomGenerator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.List;
-import java.util.ArrayList;
 
 /**
  * Implementation of a blackboard for tuple space extension.
  * Used by agents for 'write', 'read', 'take' messages.
  */
-public class Blackboard extends AbstractAgent {
-
-    private final List<Request> incomingRequests = new ArrayList<>();
-    private final List<Request> pendingRequests = new ArrayList<>();
+public class Blackboard extends AbstractSpatialTuple {
 
     /**
      * Constructor for blackboard.
@@ -78,48 +73,11 @@ public class Blackboard extends AbstractAgent {
     //*********************************************//
 
     /**
-     * Handles new requests received from the blackboard.
+     * Insert a term into the theory.
+     * @param request object that contains the term to write into the theory.
      */
-    private void handleIncomingRequests() {
-        while (!(this.incomingRequests.size() == 0)) {
-            final Request request = this.incomingRequests.remove(0);
-            // System.out.println("REQUEST " + request.getAction() + " --> " + request.getTemplate());
-            switch (request.getAction()) {
-                case "write":
-                    this.writeOnBlackboard(request);
-                    break;
-                case "read":
-                    this.readFromBlackboard(request, false);
-                    break;
-                case "take":
-                    this.takeFromBlackboard(request, false);
-                    break;
-            }
-        }
-    }
-
-    /**
-     * Iterates pending requests to try to solve them.
-     */
-    private void handlePendingRequests() {
-        for (int i = 0; i < this.pendingRequests.size(); i++) {
-            final Request currRequest = this.pendingRequests.get(i);
-            switch (currRequest.getAction()) {
-                case "read":
-                    readFromBlackboard(currRequest, true);
-                    break;
-                case "take":
-                    takeFromBlackboard(currRequest, true);
-                    break;
-            }
-        }
-    }
-
-    /**
-     * Write the request on the blackboard theory.
-     * @param request the request to add.
-     */
-    private void writeOnBlackboard(final Request request) {
+    @Override
+    protected void writeOnSpatialTuple(final Request request) {
         final SolveInfo matchBreadcrumb = this.getEngine().solve(new Struct(
                 "=",
                 request.getTemplate(),
@@ -133,7 +91,7 @@ public class Blackboard extends AbstractAgent {
             if (!checkIfPresent.isSuccess()) {
                 final SolveInfo msgToWrite = this.getEngine().solve(new Struct("assertz", request.getTemplate()));
                 if (msgToWrite.isSuccess()) {
-                    getNode().setConcentration(new SimpleMolecule("breadcrumb"), 0);
+                    this.getNode().setConcentration(new SimpleMolecule("breadcrumb"), 0);
                     this.handlePendingRequests();
                 } else {
                     throw new IllegalArgumentException("Malformed template to write on blackboard");
@@ -150,16 +108,16 @@ public class Blackboard extends AbstractAgent {
     }
 
     /**
-     * Tries to read the request from blackboard theory. If has success return the solution to the agent.
-     * @param request request to read.
-     * @param isPending boolean to check if the request comes from the pending queue.
+     * Try to read a template from the theory. If it has success return the solution to the agent.
+     * @param request object that contains the template to read from the theory.
+     * @param isPending boolean that indicate if the request object is taken from pending queue.
      */
-    private void readFromBlackboard(final Request request, final boolean isPending) {
+    protected void readFromSpatialTuple(final Request request, final boolean isPending) {
         try {
             final SolveInfo verifyMatch = this.getEngine().solve(request.getTemplate());
             if (verifyMatch.isSuccess()) {
                 if (isPending) {
-                    this.pendingRequests.remove(request);
+                    this.removeFromPendingQueue(request);
                 }
                 request.getAgent().addResponseMessage(new Struct(
                         "msg",
@@ -169,7 +127,7 @@ public class Blackboard extends AbstractAgent {
             } else {
                 if (!isPending) {
                     // System.out.println("ADD TO PENDING || " + request.getAction() + " || " + request.getTemplate());
-                    this.pendingRequests.add(request);
+                    this.addToPendingQueue(request);
                 }
             }
         } catch (NoSolutionException e) {
@@ -178,16 +136,17 @@ public class Blackboard extends AbstractAgent {
     }
 
     /**
-     * Tries to take the request from blackboard theory. If has success remove the message from the theory and return the solution to the agent.
-     * @param request request to take.
-     * @param isPending boolean to check if the request comes from the pending queue.
+     * Try to take a template from the theory. If it has success (a term is removed from the theory) return the solution to the agent.
+     * @param request object that contains the template to read from the theory.
+     * @param isPending boolean that indicate if the request object is taken from pending queue.
      */
-    private void takeFromBlackboard(final Request request, final boolean isPending) {
+    @Override
+    protected void takeFromSpatialTuple(final Request request, final boolean isPending) {
         try {
             final SolveInfo verifyMatch = this.getEngine().solve(new Struct("retract", request.getTemplate()));
             if (verifyMatch.isSuccess()) {
                 if (isPending) {
-                    this.pendingRequests.remove(request);
+                    this.removeFromPendingQueue(request);
                 }
                 try {
                     final SolveInfo match = this.getEngine().solve(new Struct(
@@ -205,7 +164,7 @@ public class Blackboard extends AbstractAgent {
                                         Term.createTerm("hansel"),
                                         Term.createTerm("here"))));
                         if (matchBreadcrumb.isSuccess() && getNode().contains(new SimpleMolecule("breadcrumb"))) {
-                            getNode().removeConcentration(new SimpleMolecule("breadcrumb"));
+                            this.getNode().removeConcentration(new SimpleMolecule("breadcrumb"));
                         }
                         final Term term = match.getTerm("X");
                         final Position nodePosition = getNode().getNodePosition();
@@ -222,61 +181,11 @@ public class Blackboard extends AbstractAgent {
             } else {
                 if (!isPending) {
                     // System.out.println("ADD TO PENDING || " + request.getAction() + " || " + request.getTemplate());
-                    this.pendingRequests.add(request);
+                    this.addToPendingQueue(request);
                 }
             }
         } catch (NoSolutionException e) {
             throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " take on blackboard.");
         }
-    }
-
-
-    //*********************************************//
-    //**         Agent's external action         **//
-    //*********************************************//
-
-    /**
-     * Gets values and creates a request to put in the incoming queue.
-     * @param template template to find (case of 'read' or 'take') or term to insert (case of 'write').
-     * @param agent agent instance.
-     * @param action action to performe ('write', 'read', 'take').
-     */
-    public void insertRequest(final Term template, final AbstractAgent agent, final String action) {
-        this.incomingRequests.add(new Request(template, agent, action));
-    }
-
-
-    /**
-     * Defines a waiting agent.
-     */
-    public final class Request {
-        private final Term template;
-        private final AbstractAgent agent;
-        private final String action;
-
-        /**
-         * Constructor for the request.
-         * @param template template to find (case of 'read' or 'take') or term to insert (case of 'write').
-         * @param agent agent instance.
-         * @param action action to performe ('write', 'read', 'take').
-         */
-        private Request(final Term template, final AbstractAgent agent, final String action) {
-            this.template = template;
-            this.agent = agent;
-            this.action = action;
-        }
-
-        public Term getTemplate() {
-            return this.template;
-        }
-
-        public AbstractAgent getAgent() {
-            return this.agent;
-        }
-
-        public String getAction() {
-            return this.action;
-        }
-
     }
 }

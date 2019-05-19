@@ -2,7 +2,6 @@ package it.unibo.alchemist.model.implementations.actions;
 
 import alice.tuprolog.InvalidTheoryException;
 import alice.tuprolog.Library;
-import alice.tuprolog.Long;
 import alice.tuprolog.NoMoreSolutionException;
 import alice.tuprolog.NoSolutionException;
 import alice.tuprolog.Prolog;
@@ -234,7 +233,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         // Solve init plan if present
         final SolveInfo init = this.getEngine().solve(new Struct("init"));
         if (!init.isSuccess()) {
-            System.err.println(this.getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " init.");
+            System.err.println(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_IMPLEMENTATION_FOUND + " init.");
         }
 //        else {
 //            // System.out.println(this.getAgentName() + SEPARATOR + "init " + SUCCESS_PLAN);
@@ -250,13 +249,10 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
             if (Objects.nonNull(msg)) {
                 // Search the predicate in the theory
                 final Struct receivedMessage = new Struct("onReceivedMessage", msg.getSender(), msg.getPayload());
-                final SolveInfo checkClause = this.engine.solve(new Struct("clause", receivedMessage, new Var("Body")));
-                if (checkClause.isSuccess()) {
-//                    System.out.println("LOG" + SEPARATOR + getAgentName() + SEPARATOR + "leggo messaggio");
-                    this.createIntention(checkClause, " onReceivedMessage.");
-                } else {
-                    System.err.println(this.getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + receivedMessage);
-                }
+
+                final Struct checkClause = new Struct("clause", receivedMessage, new Var("Body"));
+                this.createIntention(checkClause, " onReceivedMessage.");
+                System.out.println("LOG" + SEPARATOR + getAgentName() + this.getNode().getId() + SEPARATOR + "MESSAGE READ");
             }
         }
     }
@@ -271,14 +267,16 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                     new Struct("removed_belief", new Var("B")));
             SolveInfo solveRemovedBelief = this.engine.solve(removedBeliefPredicate);
             while (solveRemovedBelief != null && solveRemovedBelief.isSuccess()) {
+                /*********************ELIMINARE**************************/
+                final String str = solveRemovedBelief.getTerm("B").toString();
+                System.out.println("////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////removed:" + str);
+                /*********************ELIMINARE**************************/
+
                 // Search the predicate in the theory
                 final Struct removedBeliefNotify = new Struct("onRemoveBelief", solveRemovedBelief.getTerm("B"));
-                final SolveInfo checkClause = this.engine.solve(new Struct("clause", removedBeliefNotify, new Var("Body")));
-                if (checkClause.isSuccess()) {
-                    this.createIntention(checkClause, " onRemoveBelief.");
-                } else {
-                    System.err.println(this.getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + removedBeliefNotify);
-                }
+                final Struct checkClause = new Struct("clause", removedBeliefNotify, new Var("Body"));
+                this.createIntention(checkClause, " onRemoveBelief.");
+
                 if (solveRemovedBelief.hasOpenAlternatives()) {
                     solveRemovedBelief = this.engine.solve(removedBeliefPredicate);
                 } else {
@@ -291,14 +289,16 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                     new Struct("added_belief", new Var("B")));
             SolveInfo solveAddedBelief = this.engine.solve(addedBeliefPredicate);
             while (solveAddedBelief != null && solveAddedBelief.isSuccess()) {
+                /*********************ELIMINARE**************************/
+                final String str = solveAddedBelief.getTerm("B").toString();
+                System.out.println("////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////added:" + str);
+                /*********************ELIMINARE**************************/
+
                 // Search the predicate in the theory
                 final Struct addedBeliefNotify = new Struct("onAddBelief", solveAddedBelief.getTerm("B"));
-                final SolveInfo checkClause = this.engine.solve(new Struct("clause", addedBeliefNotify, new Var("Body")));
-                if (checkClause.isSuccess()) {
-                    this.createIntention(checkClause, " onAddBelief.");
-                } else {
-                    System.err.println(this.getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + addedBeliefNotify);
-                }
+                final Struct checkClause = new Struct("clause", addedBeliefNotify, new Var("Body"));
+                this.createIntention(checkClause, " onAddBelief.");
+
                 if (solveAddedBelief.hasOpenAlternatives()) {
                     solveAddedBelief = this.engine.solve(addedBeliefPredicate);
                 } else {
@@ -306,9 +306,9 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                 }
             }
         } catch (NoSolutionException e) {
-            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " belief base changes.");
+            throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_SOLUTION_MSG + " belief base changes.");
         } catch (UnknownVarException e) {
-            throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " belief base changes.");
+            throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + UNKNOWN_VAR_MSG + " belief base changes.");
         }
     }
 
@@ -317,29 +317,54 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
      * @param checkClause clause containing the body of the plan
      * @param errorMessage string to concat to the exception message
      */
-    private void createIntention(final SolveInfo checkClause, final String errorMessage) {
+    private void createIntention(final Struct checkClause, final String errorMessage) {
         try {
-            final SolveInfo unfoldBody = this.engine.solve(new Struct("unfold", checkClause.getTerm("Body"), new Var("BodyList")));
-            // Generate the random id for the intention
-            final Term id = new Long(new Date().getTime()); // TODO verificare univocità id
+            SolveInfo solveCheckClause = this.engine.solve(checkClause);
+            if (solveCheckClause.isSuccess()) {
+                final List<Struct> unfoldedBodyList = new ArrayList<>();
 
-            // Add intention to the theory
-            final Struct intention = new Struct("intention", id, unfoldBody.getTerm("BodyList"));
-//            this.engine.getTheoryManager().assertA(intention, true, null, false);
-            final SolveInfo solveIntention = this.engine.solve(new Struct("assertz", intention));
-            if (solveIntention.isSuccess()) {
-                // Add id to the stack
-                this.intentionsStack.add(id.toString());
+                // Scan all callable plans
+                while (solveCheckClause != null && solveCheckClause.isSuccess()) {
+                    final Struct unfoldBody = new Struct("unfold", solveCheckClause.getTerm("Body"), new Var("BodyList"));
 
-                // TODO remove log
-                System.out.println("LOG" + SEPARATOR + getAgentName() + SEPARATOR + intention);
+                    unfoldedBodyList.add(unfoldBody);
+
+                    if (solveCheckClause.hasOpenAlternatives()) {
+                        solveCheckClause = this.engine.solveNext();
+                    } else {
+                        solveCheckClause = null;
+                    }
+                }
+
+                for (Struct ub : unfoldedBodyList) {
+                    final SolveInfo solveUB = this.engine.solve(ub);
+                    // Generate the random id for the intention
+                    final Term id = new alice.tuprolog.Double(this.agentRandomGenerator.nextDouble()); // TODO verificare univocità id
+                    // Add intention to the theory
+                    final Struct intention = new Struct("intention", id, solveUB.getTerm("BodyList"));
+                    final SolveInfo solveIntention = this.engine.solve(new Struct("assertz", intention));
+
+                    if (solveIntention.isSuccess()) {
+                        // Add id to the stack
+                        this.intentionsStack.add(id.toString());
+
+                        // TODO remove log
+                        if (!AbstractSpatialTuple.class.isAssignableFrom(this.getClass()) && !getAgentName().equals("deposit")) {
+                            System.out.println("LOG(stack size: " + this.intentionsStack.size() + ")" + SEPARATOR + getAgentName() + this.getNode().getId() + SEPARATOR + intention);
+                        }
+                    } else {
+                        System.err.println(this.getAgentName() + this.getNode().getId() + SEPARATOR + ERR_INSERTING_INTENTION + intention);
+                    }
+                }
             } else {
-                System.err.println(this.getAgentName() + SEPARATOR + ERR_INSERTING_INTENTION + intention);
+                System.err.println(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_IMPLEMENTATION_FOUND + errorMessage  + SEPARATOR + checkClause);
             }
         } catch (NoSolutionException e) {
-            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + errorMessage);
+            throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_SOLUTION_MSG + errorMessage);
         } catch (UnknownVarException e) {
-            throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + errorMessage);
+            throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + UNKNOWN_VAR_MSG + errorMessage);
+        } catch (NoMoreSolutionException e) {
+            throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_MORE_SOLUTION_MSG + errorMessage);
         }
     }
 
@@ -354,30 +379,23 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
             final Term intentionID = Term.createTerm(Objects.requireNonNull(id));
             this.intentionsStack.add(id);
 
-//            try {
-//                SolveInfo s = this.engine.solve(new Struct("intention", intentionID, new Var("X")));
-//                if (s.isSuccess()) {
-//                    System.out.println("FILO !! " + id + " intenzione da esguire " + s.getTerm("X"));
-//                } else {
-//                    System.err.println("FILO !! Errore recupero intenzione");
-//                    this.intentionsStack.forEach(str -> {
-//                        System.out.println("ELEMENTO STACK JAVA: " + str);
-//                    });
-//                }
-//            } catch (NoSolutionException | UnknownVarException e) {
-//                e.printStackTrace();
-//            }
-
-            final Struct execIntention = new Struct("execute", intentionID);
-            final SolveInfo solveExecIntention = this.engine.solve(execIntention);
-            if (!solveExecIntention.isSuccess()) {
-                System.err.println(this.getAgentName() + SEPARATOR + ERR_EXECUTING_INTENTION + execIntention);
+            try {
+                final SolveInfo s = this.engine.solve(new Struct("intention", intentionID, new Var("X")));
+                final Struct execIntention = new Struct("execute", intentionID);
+                final SolveInfo solveExecIntention = this.engine.solve(execIntention);
+                if (!solveExecIntention.isSuccess()) {
+                    System.err.println(this.getAgentName() + SEPARATOR + ERR_EXECUTING_INTENTION + execIntention);
+                    this.removeCompletedIntention(id);
+                    if (s.isSuccess()) {
+                        System.err.println("ERRORE || id intenzione: " + id + SEPARATOR + " array predicati da esguire " + s.getTerm("X"));
+                    }
+                } else {
+                    System.out.println(this.getAgentName() + this.getNode().getId() + SEPARATOR + "esegita intenzione " + execIntention);
+                }
+            } catch (NoSolutionException | UnknownVarException e) {
+                e.printStackTrace();
             }
-//            else {
-//                System.out.println(this.getAgentName() + SEPARATOR + "Executed intention " + execIntention);
-//            }
         }
-
     }
 
     //*********************************************//
@@ -410,22 +428,24 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
      * Remove a completed intention from the stack.
      * @param intentionID identifier of the intention to remove
      */
-    public void removeCompletedIntention(final long intentionID) {
-        final String intentionIDstr = intentionID + "";
-        if (this.intentionsStack.contains(intentionIDstr)) {
-            this.intentionsStack.remove(intentionIDstr);
+    public void removeCompletedIntention(final double intentionID) {
+        if (this.intentionsStack.contains(intentionID + "")) {
+            this.intentionsStack.remove(intentionID + "");
 
-            final Term intentionIDTerm = new Long(intentionID);
-            final Struct removeCompletedIntention = new Struct("retract", new Struct("intention", intentionIDTerm, new Var("X")));
+            final Struct removeCompletedIntention = new Struct("retract", new Struct("intention", new alice.tuprolog.Double(intentionID), new Var("X")));
             final SolveInfo solveRemovedCompletedIntention = this.engine.solve(removeCompletedIntention);
             if (solveRemovedCompletedIntention.isSuccess()) {
-                System.out.println(this.getAgentName() + SEPARATOR + SUCCESS_REMOVE_INTENTION + intentionID);
+                System.out.println(this.getAgentName() + this.getNode().getId() + SEPARATOR + SUCCESS_REMOVE_INTENTION + intentionID);
             } else {
-                System.err.println(this.getAgentName() + SEPARATOR + FAILED_REMOVE_INTENTION + intentionID);
+                System.err.println(this.getAgentName() + this.getNode().getId() + SEPARATOR + FAILED_REMOVE_INTENTION + intentionID);
             }
         } else {
-            System.err.println(this.getAgentName() + SEPARATOR + INTENTION_NOT_EXISTS + intentionID);
+            System.err.println(this.getAgentName() + this.getNode().getId() + SEPARATOR + INTENTION_NOT_EXISTS + intentionID);
         }
+    }
+
+    public void removeCompletedIntention(final String intentionID) {
+        removeCompletedIntention(Double.parseDouble(intentionID));
     }
 
     /**
@@ -465,13 +485,18 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
             if (match.isSuccess()) {
                 this.sendMessage(Term.createTerm(this.getAgentName()), match.getTerm("R"), match.getTerm("M"));
             } else {
-                // TODO aggiungere altre eventuali azioni iterne
-                System.err.println(this.getAgentName() + SEPARATOR + INTERAL_ACTION_NOT_RECOGNIZED + action);
+                match = this.engine.solve(new Struct("=", Term.createTerm(action), new Struct("iPrint", new Var("M"))));
+                if (match.isSuccess()) {
+                    System.out.println(getAgentName() + this.getNode().getId() + SEPARATOR + "PRINT " + match.getTerm("M"));
+                } else {
+                    // TODO aggiungere altre eventuali azioni iterne
+                    System.err.println(this.getAgentName() + this.getNode().getId() + SEPARATOR + INTERAL_ACTION_NOT_RECOGNIZED + action);
+                }
             }
         } catch (NoSolutionException e) {
-            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " internal action " + action);
+            throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_SOLUTION_MSG + " internal action " + action);
         } catch (UnknownVarException e) {
-            throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " internal action " + action);
+            throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + UNKNOWN_VAR_MSG + " internal action " + action);
         }
     }
 
@@ -486,13 +511,8 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
     }
 
     // TODO eliminare
-    public void test(final String msg) {
+    public void test(final Object msg) {
         System.out.println("test: " + msg);
-    }
-
-    // TODO eliminare
-    public void test1(final String msg) {
-        System.out.println("array vuoto???: " + msg);
     }
 
 
@@ -527,12 +547,14 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         final Struct removeOldPosition = new Struct("retract",
                 new Struct("belief",
                         new Struct("position", new Var("X"), new Var("Y"))));
-        final SolveInfo solveRemoveOldPositon = this.engine.solve(removeOldPosition);
-        if (!solveRemoveOldPositon.isSuccess()) {
-            System.err.println(this.getAgentName() + SEPARATOR + "No belief found for position(X,Y)");
+        final SolveInfo solveRemoveOldPosition = this.engine.solve(removeOldPosition);
+        if (!solveRemoveOldPosition.isSuccess()) {
+            System.err.println(this.getAgentName() + this.getNode().getId() + SEPARATOR + "No belief found for position(X,Y)");
         }
 
-        final Struct newPosition = new Struct("position", new alice.tuprolog.Double(updatedPosition.getCoordinate(0)), new alice.tuprolog.Double(updatedPosition.getCoordinate(1)));
+        final Struct newPosition = new Struct("position",
+                new alice.tuprolog.Double(updatedPosition.getCoordinate(0)),
+                new alice.tuprolog.Double(updatedPosition.getCoordinate(1)));
 
         // Insert new position in the theory
         final Struct updatePositionBelief = new Struct("belief", newPosition);
@@ -540,12 +562,8 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
 
         // Create the intention to notify the position update
         final Struct updatePositionNotify = new Struct("onAddBelief", newPosition);
-        final SolveInfo checkClause = this.engine.solve(new Struct("clause", updatePositionNotify, new Var("Body")));
-        if (checkClause.isSuccess()) {
-            this.createIntention(checkClause, " update agent position.");
-        } else {
-            System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + updatePositionNotify);
-        }
+        final Struct checkClause = new Struct("clause", updatePositionNotify, new Var("Body"));
+        this.createIntention(checkClause, " update agent position.");
     }
 
     /**
@@ -570,12 +588,9 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                     // Add intention of 'distance(AGENT_NAME, NEW_DISTANCE, OLD_DISTANCE).'
                     final Struct distanceUpdateNotify = new Struct("onAddBelief",
                             new Struct("distance", agentName, new alice.tuprolog.Double(newDistances.get(agentName.toString())), solveRetrieveDistances.getTerm("D")));
-                    final SolveInfo checkClause = this.engine.solve(new Struct("clause", distanceUpdateNotify, new Var("Body")));
-                    if (checkClause.isSuccess()) {
-                        this.createIntention(checkClause, " update agent distances.");
-                    } else {
-                        System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + distanceUpdateNotify);
-                    }
+                    final Struct checkClause = new Struct("clause", distanceUpdateNotify, new Var("Body"));
+                    this.createIntention(checkClause, " update agent distances.");
+
                     newDistances.remove(agentName.toString());
                 }
 
@@ -593,28 +608,22 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                     // Add in the theory 'belief(distance(AGENT_NAME, NEW_DISTANCE)).'
                     final Struct distanceUpdate = new Struct("distance", agentTerm, new alice.tuprolog.Double(distance));
                     final Struct distanceBelief = new Struct("belief", distanceUpdate);
-                    System.out.println(getAgentName() + " has new agent in the neighborhood: " + strAgentName);
+//                    System.out.println(getAgentName() + " has new agent in the neighborhood: " + strAgentName);
                     this.engine.getTheoryManager().assertA(distanceBelief, true, null, false);
 
                     // Add intention of 'distance(AGENT_NAME, NEW_DISTANCE).'
                     final Struct distanceUpdateNotify = new Struct("onAddBelief",
                             new Struct("distance", agentTerm, new alice.tuprolog.Double(newDistances.get(strAgentName))));
-                    final SolveInfo checkClause = this.engine.solve(new Struct("clause", distanceUpdateNotify, new Var("Body")));
-                    if (checkClause.isSuccess()) {
-                        this.createIntention(checkClause, " update agent distances.");
-                    } else {
-                        System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + distanceUpdateNotify);
-                    }
+                    final Struct checkClause = new Struct("clause", distanceUpdateNotify, new Var("Body"));
+                    this.createIntention(checkClause, " update agent distances.");
+
                 });
             }
         } catch (NoSolutionException e) {
-            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " to update agent distances.");
+            throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_SOLUTION_MSG + " to update agent distances.");
         } catch (UnknownVarException e) {
-            throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " to update agent distances.");
+            throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + UNKNOWN_VAR_MSG + " to update agent distances.");
         }
-//        catch (NoMoreSolutionException e) {
-//            throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " to update agent distances.");
-//        }
     }
 
     //*********************************************//
@@ -630,17 +639,17 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                 // Tries to solve the goal retracting the beliefs of the tuples
                 SolveInfo solvedAction = this.engine.solve(tt.getFirst());
                 while (solvedAction != null && solvedAction.isSuccess()) {
-                    if (tt.getSecond().equals("write")) { // if the action is write the request is sent to the nearest blackboard
-                        // Retrieves the nearest blackboard instance.
-                        final AbstractAgent blackboard = getNode().getNearestBlackboard();
-                        if (Objects.nonNull(blackboard) && blackboard.getClass().equals(Blackboard.class)) {
-                            ((Blackboard) blackboard).insertRequest(solvedAction.getTerm("T"), this, tt.getSecond());
+                    if (tt.getSecond().equals("write")) { // if the action is write the request is sent to the nearest spatial tuple
+                        // Retrieves the nearest spatial tuple instance.
+                        final AbstractSpatialTuple spatialTuple = getNode().getNearestSpatialTuple();
+                        if (Objects.nonNull(spatialTuple)) {
+                            spatialTuple.insertRequest(solvedAction.getTerm("T"), this, tt.getSecond());
                         }
-                    } else { // otherwise, for read and take actions the requests is sent to the neighborhood blackboard
-                        // Retrieves the blackboard neighborhood instances.
-                        final List<Blackboard> blackboardNeighborhood = getNode().getBlackboardNeighborhood();
-                        for (Blackboard blackboard: blackboardNeighborhood) {
-                            blackboard.insertRequest(solvedAction.getTerm("T"), this, tt.getSecond());
+                    } else { // otherwise, for read and take actions the requests is sent to the neighborhood spatial tuple
+                        // Retrieves the spatial tuple neighborhood instances.
+                        final List<AbstractSpatialTuple> spatialTupleNeighborhood = getNode().getSpatialTupleNeighborhood();
+                        for (AbstractSpatialTuple spatialTuple: spatialTupleNeighborhood) {
+                            spatialTuple.insertRequest(solvedAction.getTerm("T"), this, tt.getSecond());
                         }
                     }
 
@@ -651,11 +660,11 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                     }
                 }
             } catch (NoSolutionException e) {
-                throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_SOLUTION_MSG + " " + tt.getThird() + ".");
+                throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_SOLUTION_MSG + " " + tt.getThird() + ".");
             } catch (UnknownVarException e) {
-                throw new IllegalStateException(this.getAgentName() + SEPARATOR + UNKNOWN_VAR_MSG + " " + tt.getThird() + ".");
+                throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + UNKNOWN_VAR_MSG + " " + tt.getThird() + ".");
             } catch (NoMoreSolutionException e) {
-                throw new IllegalStateException(this.getAgentName() + SEPARATOR + NO_MORE_SOLUTION_MSG + " " + tt.getThird() + ".");
+                throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_MORE_SOLUTION_MSG + " " + tt.getThird() + ".");
             }
         });
     }
@@ -667,12 +676,9 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
     protected void addResponseMessage(final Term response) {
         // search the predicate in the theory
         final Struct responseMessageNotify = new Struct("onResponseMessage", response);
-        final SolveInfo checkClause = this.engine.solve(new Struct("clause", responseMessageNotify, new Var("Body")));
-        if (checkClause.isSuccess()) {
-            this.createIntention(checkClause, " onResponseMessage.");
-        } else {
-            System.err.println(getAgentName() + SEPARATOR + NO_IMPLEMENTATION_FOUND + responseMessageNotify);
-        }
+        System.out.println("LOG" + SEPARATOR + getAgentName() + this.getNode().getId() + " received message: " + response);
+        final Struct checkClause = new Struct("clause", responseMessageNotify, new Var("Body"));
+        this.createIntention(checkClause, " onResponseMessage.");
     }
 
     //*********************************************//

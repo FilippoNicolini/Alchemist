@@ -1,0 +1,4 @@
+init :-
+    true.
+
+onAddBelief(_).
