@@ -7,7 +7,7 @@ network-model:
   parameters: [2]
 
 displacements:
-  - in: {type: Circle, parameters: [3,2,2,0.2]}
+  - in: {type: Circle, parameters: [2,2,2,0.2]}
     programs:
       -
         - time-distribution: 10

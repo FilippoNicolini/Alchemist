@@ -9,7 +9,7 @@ init :-
 %(1) [stato = harvesting] --> movimento casuale e ricerca pepita
 onAddBelief(position(X,Y)) :-
     belief(harvesting),
-    handlePosition(X,Y),
+    handlePosition,
     takeTuple(nugget).
 
 %(4) arrivo (vicinanze) miniera --> [stato = harvesting]
@@ -22,7 +22,7 @@ onAddBelief(position(X,Y)) :-
     addBelief(harvesting),
     changeDirection(MX,MY).
 
-handlePosition(X,Y) :-
+handlePosition :-
     node <- getNodeDirectionAngle returns D,
     randomDirection(RD),
     D1 is D - RD,

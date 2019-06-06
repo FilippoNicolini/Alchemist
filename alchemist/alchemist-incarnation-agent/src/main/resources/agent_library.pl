@@ -27,6 +27,7 @@ unfold(X, [X]).
 
 execute(I) :-
     intention(I, []),
+    !,
     agent <- removeCompletedIntention(I).
 
 execute(I) :-
@@ -41,7 +42,7 @@ execute(I, achievement(GOAL), TOP) :-
     add_goal(I, achievement(GOAL), TOP),
     !.
 
-add_goal(I, achievement(GOAL), TOP) :-
+add_goal(I, achievement(GOAL), BODY) :-
     !,
     '<-'(achievement(GOAL), GUARD, BODY),
     call(GUARD),
