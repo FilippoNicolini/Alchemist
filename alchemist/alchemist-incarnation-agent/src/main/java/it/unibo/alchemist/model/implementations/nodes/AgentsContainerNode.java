@@ -203,7 +203,7 @@ public class AgentsContainerNode extends AbstractNode<Object> {
      */
     public void updateAgentsPosition() {
         this.agents.forEach((agentName, agent) -> {
-            if (!AbstractSpatialTuple.class.isAssignableFrom(agent.getClass()) || !(agent instanceof PostmanAgent)) {
+            if (!AbstractSpatialTuple.class.isAssignableFrom(agent.getClass()) || !(agent instanceof PostmanAgent)) { // TODO verificare se serve un AND(&&)
                 agent.updateAgentPosition(this.getNodePosition());
                 agent.updateAgentsDistances();
             }

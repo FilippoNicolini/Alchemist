@@ -145,7 +145,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
      * Get the status of the intentionsStack.
      * @return true if the stack is empty
      */
-    private boolean intentionsStakcIsEmpty() {
+    private boolean intentionsStackIsEmpty() {
         return this.intentionsStack.size() == 0;
     }
 
@@ -373,8 +373,8 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
      * The intention selected is removed from the head and then added in the back.
      */
     protected void executeIntention() {
-        if (!this.intentionsStakcIsEmpty()) {
-            // Remove an intention from the head and push it to the back
+        if (!this.intentionsStackIsEmpty()) {
+            // Remove an intention from the head and push it to the back (Round-Robin)
             final String id = this.intentionsStack.poll();
             final Term intentionID = Term.createTerm(Objects.requireNonNull(id));
             this.intentionsStack.add(id);
@@ -406,7 +406,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
      * Generate an id for the intention created in the theory.
      * @return the identifier
      */
-    public long generateIntentionId() {
+    public long generateIntentionId() { // TODO non usato, verificare le teorie
         return new Date().getTime();
     }
 

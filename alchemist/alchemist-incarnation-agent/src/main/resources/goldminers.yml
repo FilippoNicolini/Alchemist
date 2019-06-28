@@ -10,23 +10,23 @@ displacements:
   - in: {type: Circle, parameters: [2,2,2,0.2]}
     programs:
       -
-        - time-distribution: 10
+        - time-distribution: 9
           program: "miner"
 
   - in: {type: Circle, parameters: [1,2,2,0.2]}
     programs:
       -
-        - time-distribution: 10
+        - time-distribution: 9
           program: "deposit"
 
   - in: {type: Circle, parameters: [1,2,2,0.2]}
     programs:
       -
-        - time-distribution: 10
+        - time-distribution: 9
           program: "postman"
 
   - in: {type: Circle, parameters: [10,2,2,5]}
     programs:
       -
-        - time-distribution: 10
+        - time-distribution: 9
           program: "goldmine"
