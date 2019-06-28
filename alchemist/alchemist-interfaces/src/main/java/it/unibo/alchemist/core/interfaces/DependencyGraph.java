@@ -11,8 +11,6 @@ import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Reaction;
 import org.danilopianini.util.ListSet;
 
-import java.io.Serializable;
-
 /**
  * This interface allows to separate the usage of a dependency graph from its
  * implementation.
@@ -20,7 +18,7 @@ import java.io.Serializable;
  * @param <T>
  *            The parametrization type for reactions
  */
-public interface DependencyGraph<T> extends Serializable {
+public interface DependencyGraph<T> {
 
     /**
      * Given two nodes, the graph assumes they are now neighbors and calculates the

@@ -68,16 +68,16 @@ import it.unibo.alchemist.model.interfaces.Position;
 public abstract class AbstractEnvironment<T, P extends Position<P>> implements Environment<T, P> {
 
     private static final long serialVersionUID = 0L;
-    private transient LoadingCache<ImmutablePair<P, Double>, ListSet<Node<T>>> cache;
-    private transient Incarnation<T, P> incarnation;
     private final Map<Molecule, Layer<T, P>> layers = new LinkedHashMap<>();
     private final TIntObjectHashMap<Neighborhood<T>> neighCache = new TIntObjectHashMap<>();
     private final ListSet<Node<T>> nodes = new ArrayListSet<>();
     private final TIntObjectHashMap<P> nodeToPos = new TIntObjectHashMap<>();
+    private final SpatialIndex<Node<T>> spatialIndex;
+    private transient LoadingCache<ImmutablePair<P, Double>, ListSet<Node<T>>> cache;
+    private transient Incarnation<T, P> incarnation;
     private LinkingRule<T, P> rule;
     private transient Simulation<T, P> simulation;
-    private final SpatialIndex<Node<T>> spatialIndex;
-    private Predicate<Environment<T, P>> terminator = (Predicate<Environment<T, P>> & Serializable) c -> false;
+    private SerializablePredicate<T, P> terminator = c -> false;
 
     /**
      * @param internalIndex
@@ -97,7 +97,6 @@ public abstract class AbstractEnvironment<T, P extends Position<P>> implements E
 
     @Override
     public final void addNode(final Node<T> node, final P p) {
-        System.out.println("Trying to add " + node.getId() + "@" + p);
         if (nodeShouldBeAdded(node, p)) {
             final P actualPosition = computeActualInsertionPosition(node, p);
             setPosition(node, actualPosition);
@@ -124,7 +123,7 @@ public abstract class AbstractEnvironment<T, P extends Position<P>> implements E
 
     @Override
     public final void addTerminator(final Predicate<Environment<T, P>> terminator) {
-        this.terminator = this.terminator.or((Serializable & Predicate<Environment<T, P>>) terminator);
+        this.terminator = this.terminator.orPredicate(terminator);
     }
 
     /**
@@ -174,6 +173,15 @@ public abstract class AbstractEnvironment<T, P extends Position<P>> implements E
     }
 
     @Override
+    public final void setIncarnation(final Incarnation<T, P> incarnation) {
+        if (this.incarnation == null) {
+            this.incarnation = Objects.requireNonNull(incarnation);
+        } else {
+            throw new IllegalStateException("The Environment has already been equipeed with an incarnation: " + this.incarnation);
+        }
+    }
+
+    @Override
     public final Optional<Layer<T, P>> getLayer(final Molecule m) {
         return Optional.ofNullable(layers.get(m));
     }
@@ -186,6 +194,11 @@ public abstract class AbstractEnvironment<T, P extends Position<P>> implements E
     @Override
     public final LinkingRule<T, P> getLinkingRule() {
         return rule;
+    }
+
+    @Override
+    public final void setLinkingRule(final LinkingRule<T, P> r) {
+        rule = Objects.requireNonNull(r);
     }
 
     @Override
@@ -243,7 +256,7 @@ public abstract class AbstractEnvironment<T, P extends Position<P>> implements E
     }
 
     /**
-     * This method should not get overriden in general. However, if your
+     * This method should not get overridden in general. However, if your
      */
     @Override
     public P getPosition(final Node<T> node) {
@@ -253,6 +266,15 @@ public abstract class AbstractEnvironment<T, P extends Position<P>> implements E
     @Override
     public final Simulation<T, P> getSimulation() {
         return simulation;
+    }
+
+    @Override
+    public final void setSimulation(final Simulation<T, P> s) {
+        if (simulation == null) {
+            simulation = s;
+        } else {
+            throw new IllegalStateException();
+        }
     }
 
     /**
@@ -322,7 +344,7 @@ public abstract class AbstractEnvironment<T, P extends Position<P>> implements E
     protected void nodeRemoved(final Node<T> node, final Neighborhood<T> neighborhood) { }
 
     /**
-     * Allows subclasses to determine wether or not a {@link Node} should
+     * Allows subclasses to determine whether or not a {@link Node} should
      * actually get added to this environment.
      *
      * @param node
@@ -396,20 +418,6 @@ public abstract class AbstractEnvironment<T, P extends Position<P>> implements E
                 .collect(Collectors.toCollection(() -> new ArrayListSet<>(size))));
     }
 
-    @Override
-    public final void setIncarnation(final Incarnation<T, P> incarnation) {
-        if (this.incarnation == null) {
-            this.incarnation = Objects.requireNonNull(incarnation);
-        } else {
-            throw new IllegalStateException("The Environment has already been equipeed with an incarnation: " + this.incarnation);
-        }
-    }
-
-    @Override
-    public final void setLinkingRule(final LinkingRule<T, P> r) {
-        rule = Objects.requireNonNull(r);
-    }
-
     /**
      * Adds or changes a position entry in the position map.
      *
@@ -426,15 +434,6 @@ public abstract class AbstractEnvironment<T, P extends Position<P>> implements E
         if (pos != null && !spatialIndex.move(n, pos.getCartesianCoordinates(), p.getCartesianCoordinates())) {
             throw new IllegalArgumentException("Tried to move a node not previously present in the environment: \n"
                     + "Node: " + n + "\n" + "Requested position" + p);
-        }
-    }
-
-    @Override
-    public final void setSimulation(final Simulation<T, P> s) {
-        if (simulation == null) {
-            simulation = s;
-        } else {
-            throw new IllegalStateException();
         }
     }
 
@@ -528,11 +527,18 @@ public abstract class AbstractEnvironment<T, P extends Position<P>> implements E
         out.writeObject(incarnation.getClass().getSimpleName());
     }
 
-    private class Operation {
+    @FunctionalInterface
+    private interface SerializablePredicate<T, P extends Position<P>> extends Predicate<Environment<T, P>>, Serializable {
+        default SerializablePredicate<T, P> orPredicate(final Predicate<Environment<T, P>> other) {
+            return e -> this.test(e) || other.test(e);
+        }
+    }
+
+    private final class Operation {
         private final Node<T> destination;
         private final boolean isAdd;
         private final Node<T> origin;
-        Operation(final Node<T> origin, final Node<T> destination, final boolean isAdd) {
+        private Operation(final Node<T> origin, final Node<T> destination, final boolean isAdd) {
             this.origin = origin;
             this.destination = destination;
             this.isAdd = isAdd;

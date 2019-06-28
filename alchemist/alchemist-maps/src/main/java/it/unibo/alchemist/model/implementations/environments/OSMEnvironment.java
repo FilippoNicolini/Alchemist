@@ -7,6 +7,38 @@
  */
 package it.unibo.alchemist.model.implementations.environments;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.hash.Hashing;
+import com.graphhopper.GHRequest;
+import com.graphhopper.GHResponse;
+import com.graphhopper.GraphHopper;
+import com.graphhopper.GraphHopperAPI;
+import com.graphhopper.reader.osm.GraphHopperOSM;
+import com.graphhopper.routing.util.EdgeFilter;
+import com.graphhopper.routing.util.EncodingManager;
+import com.graphhopper.storage.index.QueryResult;
+import com.graphhopper.util.shapes.GHPoint;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import it.unibo.alchemist.model.implementations.positions.LatLongPosition;
+import it.unibo.alchemist.model.implementations.routes.GraphHopperRoute;
+import it.unibo.alchemist.model.implementations.routes.PolygonalChain;
+import it.unibo.alchemist.model.interfaces.GeoPosition;
+import it.unibo.alchemist.model.interfaces.MapEnvironment;
+import it.unibo.alchemist.model.interfaces.Node;
+import it.unibo.alchemist.model.interfaces.Route;
+import it.unibo.alchemist.model.interfaces.Vehicle;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
+import org.danilopianini.util.Hashes;
+import org.danilopianini.util.concurrent.FastReadWriteLock;
+import org.jetbrains.annotations.NotNull;
+import org.jooq.lambda.Unchecked;
+import org.kaikikm.threadresloader.ResourceLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,37 +57,6 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.codec.binary.Hex;
-import org.danilopianini.util.Hashes;
-import org.danilopianini.util.concurrent.FastReadWriteLock;
-import org.jetbrains.annotations.NotNull;
-import org.jooq.lambda.Unchecked;
-import org.kaikikm.threadresloader.ResourceLoader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.graphhopper.GHRequest;
-import com.graphhopper.GHResponse;
-import com.graphhopper.GraphHopper;
-import com.graphhopper.GraphHopperAPI;
-import com.graphhopper.reader.osm.GraphHopperOSM;
-import com.graphhopper.routing.util.EdgeFilter;
-import com.graphhopper.routing.util.EncodingManager;
-import com.graphhopper.storage.index.QueryResult;
-import com.graphhopper.util.shapes.GHPoint;
-
-import it.unibo.alchemist.model.implementations.routes.GraphHopperRoute;
-import it.unibo.alchemist.model.implementations.positions.LatLongPosition;
-import it.unibo.alchemist.model.implementations.routes.PolygonalChain;
-import it.unibo.alchemist.model.interfaces.GeoPosition;
-import it.unibo.alchemist.model.interfaces.MapEnvironment;
-import it.unibo.alchemist.model.interfaces.Node;
-import it.unibo.alchemist.model.interfaces.Route;
-import it.unibo.alchemist.model.interfaces.Vehicle;
 
 /**
  * This class serves as template for more specific implementations of
@@ -254,7 +255,7 @@ public final class OSMEnvironment<T> extends Abstract2DEnvironment<T, GeoPositio
                         final Vehicle vehicle = Objects.requireNonNull(key).v;
                         final GeoPosition p1 = key.start;
                         final GeoPosition p2 = key.end;
-                        final GHRequest req = new GHRequest(p1.getCoordinate(1), p1.getCoordinate(0), p2.getCoordinate(1), p2.getCoordinate(0))
+                        final GHRequest req = new GHRequest(p1.getLatitude(), p1.getLongitude(), p2.getLatitude(), p2.getLongitude())
                                 .setAlgorithm(DEFAULT_ALGORITHM)
                                 .setVehicle(vehicle.toString())
                                 .setWeighting(ROUTING_STRATEGY);
@@ -347,8 +348,8 @@ public final class OSMEnvironment<T> extends Abstract2DEnvironment<T, GeoPositio
         mapLock.read();
         final GraphHopperAPI gh = navigators.get(Vehicle.BIKE);
         mapLock.release();
-        final QueryResult qr = ((GraphHopper) gh).getLocationIndex().findClosest(position.getCoordinate(1),
-                position.getCoordinate(0), EdgeFilter.ALL_EDGES);
+        final QueryResult qr = ((GraphHopper) gh).getLocationIndex()
+                .findClosest(position.getLatitude(), position.getLongitude(), EdgeFilter.ALL_EDGES);
         if (qr.isValid()) {
             final GHPoint pt = qr.getSnappedPoint();
             return Optional.of(new LatLongPosition(pt.lat, pt.lon));
@@ -375,6 +376,7 @@ public final class OSMEnvironment<T> extends Abstract2DEnvironment<T, GeoPositio
         return new double[] { sizex, sizey };
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private void initAll(final String fileName) throws IOException {
         Objects.requireNonNull(fileName, "define the file with the map: " + fileName);
         final Optional<URL> file = Optional.of(new File(fileName))
@@ -412,7 +414,7 @@ public final class OSMEnvironment<T> extends Abstract2DEnvironment<T, GeoPositio
                     mapLock.release();
                 }
                 return Optional.empty();
-            } catch (Exception e) {
+            } catch (Exception e) { // NOPMD AvoidCatchingGenericException
                 return Optional.of(e);
             }
         }).filter(Optional::isPresent).map(Optional::get).findFirst();
@@ -422,9 +424,7 @@ public final class OSMEnvironment<T> extends Abstract2DEnvironment<T, GeoPositio
     }
 
     private String initDir(final URL mapfile) throws IOException {
-        final String code = Hex.encodeHexString(Hashes.hashResource(mapfile, e -> {
-            throw new IllegalStateException(e);
-        }).asBytes());
+        final String code = Hex.encodeHexString(Hashing.sha256().hashBytes(IOUtils.toByteArray(mapfile.openStream())).asBytes());
         final String append = SLASH + code;
         final String[] prefixes = new String[] { PERSISTENTPATH, System.getProperty("java.io.tmpdir"),
                 System.getProperty("user.dir"), "." };
@@ -471,11 +471,10 @@ public final class OSMEnvironment<T> extends Abstract2DEnvironment<T, GeoPositio
     private static synchronized GraphHopperAPI initNavigationSystem(final File mapFile, final String internalWorkdir, final Vehicle v) {
         return new GraphHopperOSM().setOSMFile(mapFile.getAbsolutePath()).forDesktop()
                 .setElevation(false)
-                .setEnableInstructions(false)
                 .setEnableCalcPoints(true)
                 .setInMemory()
                 .setGraphHopperLocation(internalWorkdir)
-                .setEncodingManager(new EncodingManager(v.toString().toLowerCase(Locale.US)))
+                .setEncodingManager(EncodingManager.create(v.toString().toLowerCase(Locale.US)))
                 .importOrLoad();
     }
 
@@ -487,7 +486,7 @@ public final class OSMEnvironment<T> extends Abstract2DEnvironment<T, GeoPositio
         return mkdirsIfNeeded(new File(target));
     }
 
-    private class CacheEntry {
+    private final class CacheEntry {
 
         private final GeoPosition apprEnd;
         private final GeoPosition apprStart;
@@ -496,7 +495,7 @@ public final class OSMEnvironment<T> extends Abstract2DEnvironment<T, GeoPositio
         private final GeoPosition start;
         private final Vehicle v;
 
-        CacheEntry(final Vehicle v, final GeoPosition p1, final GeoPosition p2) {
+        private CacheEntry(final Vehicle v, final GeoPosition p1, final GeoPosition p2) {
             this.v = Objects.requireNonNull(v);
             this.start = Objects.requireNonNull(p1);
             this.end = Objects.requireNonNull(p2);
@@ -512,7 +511,7 @@ public final class OSMEnvironment<T> extends Abstract2DEnvironment<T, GeoPositio
             if (approximation == 0) {
                 return p;
             }
-            return makePosition(approximate(p.getCoordinate(0)), approximate(p.getCoordinate(1)));
+            return makePosition(approximate(p.getLatitude()), approximate(p.getLongitude()));
         }
 
         @Override

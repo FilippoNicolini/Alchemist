@@ -7,15 +7,16 @@
  */
 package it.unibo.alchemist.test;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import it.unibo.alchemist.model.implementations.environments.BioRect2DEnvironment;
 import it.unibo.alchemist.model.implementations.molecules.Biomolecule;
@@ -27,6 +28,7 @@ import it.unibo.alchemist.model.interfaces.CellNode;
 
 /**
  */
+@SuppressFBWarnings("UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 public class TestJunction {
 
     private CellNode<Euclidean2DPosition> node1;
@@ -35,7 +37,7 @@ public class TestJunction {
 
     /**
      */
-    @Before
+    @BeforeEach
     public void setUp() {
         final Environment<Double, Euclidean2DPosition> env = new BioRect2DEnvironment();
         node1 = new CellNodeImpl<>(env);

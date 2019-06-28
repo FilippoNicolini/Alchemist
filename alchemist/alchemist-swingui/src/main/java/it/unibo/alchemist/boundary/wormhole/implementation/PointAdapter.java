@@ -12,19 +12,23 @@ import java.awt.geom.Point2D;
 import java.io.Serializable;
 import java.util.Optional;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.danilopianini.lang.HashUtils;
 
 import it.unibo.alchemist.model.interfaces.Position2D;
 
 /**
  * Adapts various representations of bidimensional positions.
+ *
+ * @param <P> position type
  */
 public final class PointAdapter<P extends Position2D<? extends P>> implements Serializable {
 
     private static final long serialVersionUID = 4144646922749713533L;
+    private final double x, y;
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "Recomputed in case of necessity")
     private transient int hash;
     private transient P pos;
-    private final double x, y;
 
     private PointAdapter(final double x, final double y) {
         this.x = x;
@@ -48,8 +52,10 @@ public final class PointAdapter<P extends Position2D<? extends P>> implements Se
     }
 
     @Override
+    @SuppressFBWarnings(value = "FE_FLOATING_POINT_EQUALITY", justification = "Made by purpose")
     public boolean equals(final Object obj) {
-        return obj instanceof PointAdapter && ((PointAdapter<?>) obj).x == x && ((PointAdapter<?>) obj).y == y;
+        return this == obj
+            || obj instanceof PointAdapter && ((PointAdapter<?>) obj).x == x && ((PointAdapter<?>) obj).y == y;
     }
 
     /**
@@ -116,7 +122,7 @@ public final class PointAdapter<P extends Position2D<? extends P>> implements Se
 
     /**
      * Builds a {@link PointAdapter} from coordinates.
-     * 
+     *
      * @param x
      *            the x coordinate
      * @param y
@@ -132,7 +138,7 @@ public final class PointAdapter<P extends Position2D<? extends P>> implements Se
 
     /**
      * Builds a {@link PointAdapter}.
-     * 
+     *
      * @param p
      *            the {@link it.unibo.alchemist.model.interfaces.Position}
      * @param <P>
@@ -146,7 +152,7 @@ public final class PointAdapter<P extends Position2D<? extends P>> implements Se
 
     /**
      * Builds a {@link PointAdapter}.
-     * 
+     *
      * @param p
      *            the {@link Point2D}
      * @param <P>

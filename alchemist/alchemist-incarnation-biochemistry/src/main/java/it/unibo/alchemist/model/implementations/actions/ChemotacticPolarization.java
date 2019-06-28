@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import com.google.common.reflect.TypeToken;
+import it.unibo.alchemist.AlchemistUtil;
 import it.unibo.alchemist.model.interfaces.Position2D;
 import org.apache.commons.math3.util.FastMath;
 
@@ -67,9 +69,8 @@ public final class ChemotacticPolarization<P extends Position2D<P>> extends Abst
      *                   of the highest concentration of biomolecule in neighborhood; if it's false, the versor will
      *                   be directed in the exactly the opposite direction.
      */
-    @SuppressWarnings("unchecked")
     public ChemotacticPolarization(final Environment<Double, P> environment, final Node<Double> node, final String biomolecule, final String ascendGrad) {
-        this(environment, (CellNode<P>) node, new Biomolecule(biomolecule), ascendGrad);
+        this(environment, AlchemistUtil.cast(new TypeToken<CellNode<P>>() { }, node), new Biomolecule(biomolecule), ascendGrad);
     }
 
 
@@ -118,15 +119,15 @@ public final class ChemotacticPolarization<P extends Position2D<P>> extends Abst
         for (final Node<Double> n : list) {
             final P nPos = env.getPosition(n);
             P vecTemp = env.makePosition(
-                    nPos.getCoordinate(0) - thisNodePos.getCoordinate(0),
-                    nPos.getCoordinate(1) - thisNodePos.getCoordinate(1));
-            final double vecTempModule = FastMath.sqrt(FastMath.pow(vecTemp.getCoordinate(0), 2) + FastMath.pow(vecTemp.getCoordinate(1), 2));
+                    nPos.getX() - thisNodePos.getX(),
+                    nPos.getY() - thisNodePos.getY());
+            final double vecTempModule = FastMath.sqrt(FastMath.pow(vecTemp.getX(), 2) + FastMath.pow(vecTemp.getY(), 2));
             vecTemp = env.makePosition(
-                    n.getConcentration(biomol) * (vecTemp.getCoordinate(0) / vecTempModule), 
-                    n.getConcentration(biomol) * (vecTemp.getCoordinate(1) / vecTempModule));
+                    n.getConcentration(biomol) * (vecTemp.getX() / vecTempModule),
+                    n.getConcentration(biomol) * (vecTemp.getY() / vecTempModule));
             res = env.makePosition(
-                    res.getCoordinate(0) + vecTemp.getCoordinate(0),
-                    res.getCoordinate(1) + vecTemp.getCoordinate(1));
+                    res.getX() + vecTemp.getX(),
+                    res.getY() + vecTemp.getY());
         }
         return res;
     }
@@ -136,7 +137,6 @@ public final class ChemotacticPolarization<P extends Position2D<P>> extends Abst
         return Context.LOCAL;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public CellNode<P> getNode() {
         return (CellNode<P>) super.getNode();

@@ -7,19 +7,6 @@
  */
 package it.unibo.alchemist.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
-
-import java.util.List;
-
-import org.apache.commons.math3.random.MersenneTwister;
-import org.apache.commons.math3.random.RandomGenerator;
-import org.junit.Before;
-import org.junit.Test;
-
 import it.unibo.alchemist.exceptions.BiochemistryParseException;
 import it.unibo.alchemist.model.BiochemistryIncarnation;
 import it.unibo.alchemist.model.implementations.actions.AddJunctionInCell;
@@ -39,10 +26,23 @@ import it.unibo.alchemist.model.implementations.molecules.Biomolecule;
 import it.unibo.alchemist.model.implementations.nodes.CellNodeImpl;
 import it.unibo.alchemist.model.implementations.positions.Euclidean2DPosition;
 import it.unibo.alchemist.model.implementations.timedistributions.ExponentialTime;
-import it.unibo.alchemist.model.interfaces.Environment;
 import it.unibo.alchemist.model.interfaces.CellNode;
+import it.unibo.alchemist.model.interfaces.Environment;
 import it.unibo.alchemist.model.interfaces.Reaction;
 import it.unibo.alchemist.model.interfaces.TimeDistribution;
+import org.apache.commons.math3.random.MersenneTwister;
+import org.apache.commons.math3.random.RandomGenerator;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test for biochemistry incarnation.
@@ -63,7 +63,7 @@ public class TestIncarnation {
 
     /**
      */
-    @Before
+    @BeforeEach
     public void setUp() {
         env = new BioRect2DEnvironment();
         node = new CellNodeImpl<>(env);
@@ -178,9 +178,9 @@ public class TestIncarnation {
     /**
      * 
      */
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testCreateNode() {
-        INCARNATION.createNode(rand, env, "foo");
+        assertThrows(IllegalArgumentException.class, () -> INCARNATION.createNode(rand, env, "foo"));
     }
 
 }

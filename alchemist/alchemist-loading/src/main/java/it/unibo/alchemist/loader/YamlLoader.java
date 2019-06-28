@@ -7,11 +7,64 @@
  */
 package it.unibo.alchemist.loader;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
-import static java.util.ResourceBundle.getBundle;
+import com.google.common.base.Charsets;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
+import com.google.common.reflect.TypeToken;
+import it.unibo.alchemist.SupportedIncarnations;
+import it.unibo.alchemist.loader.displacements.Displacement;
+import it.unibo.alchemist.loader.export.Extractor;
+import it.unibo.alchemist.loader.export.FilteringPolicy;
+import it.unibo.alchemist.loader.export.MoleculeReader;
+import it.unibo.alchemist.loader.export.NumberOfNodes;
+import it.unibo.alchemist.loader.export.filters.CommonFilters;
+import it.unibo.alchemist.loader.shapes.Shape;
+import it.unibo.alchemist.loader.variables.ArbitraryVariable;
+import it.unibo.alchemist.loader.variables.DependentVariable;
+import it.unibo.alchemist.loader.variables.GroovyVariable;
+import it.unibo.alchemist.loader.variables.JavascriptVariable;
+import it.unibo.alchemist.loader.variables.LinearVariable;
+import it.unibo.alchemist.loader.variables.NumericConstant;
+import it.unibo.alchemist.loader.variables.ScalaVariable;
+import it.unibo.alchemist.loader.variables.ScriptVariable;
+import it.unibo.alchemist.loader.variables.Variable;
+import it.unibo.alchemist.model.implementations.environments.Continuous2DEnvironment;
+import it.unibo.alchemist.model.implementations.linkingrules.NoLinks;
+import it.unibo.alchemist.model.implementations.times.DoubleTime;
+import it.unibo.alchemist.model.interfaces.Action;
+import it.unibo.alchemist.model.interfaces.Concentration;
+import it.unibo.alchemist.model.interfaces.Condition;
+import it.unibo.alchemist.model.interfaces.Environment;
+import it.unibo.alchemist.model.interfaces.Incarnation;
+import it.unibo.alchemist.model.interfaces.Layer;
+import it.unibo.alchemist.model.interfaces.LinkingRule;
+import it.unibo.alchemist.model.interfaces.Molecule;
+import it.unibo.alchemist.model.interfaces.Node;
+import it.unibo.alchemist.model.interfaces.Position;
+import it.unibo.alchemist.model.interfaces.Reaction;
+import it.unibo.alchemist.model.interfaces.Time;
+import it.unibo.alchemist.model.interfaces.TimeDistribution;
+import kotlin.Pair;
+import kotlin.Triple;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.math3.random.MersenneTwister;
+import org.apache.commons.math3.random.RandomGenerator;
+import org.danilopianini.jirf.Factory;
+import org.danilopianini.jirf.FactoryBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.kaikikm.threadresloader.ResourceLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
 
+import javax.annotation.Nonnull;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,63 +94,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.Nonnull;
-
-import it.unibo.alchemist.loader.variables.GroovyVariable;
-import it.unibo.alchemist.loader.variables.ScriptVariable;
-import org.apache.commons.math3.random.MersenneTwister;
-import org.apache.commons.math3.random.RandomGenerator;
-import org.danilopianini.jirf.Factory;
-import org.danilopianini.jirf.FactoryBuilder;
-import org.jetbrains.annotations.NotNull;
-import org.kaikikm.threadresloader.ResourceLoader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
-
-import com.google.common.base.Charsets;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Table;
-import com.google.common.collect.Table.Cell;
-import com.google.common.reflect.TypeToken;
-
-import it.unibo.alchemist.SupportedIncarnations;
-import it.unibo.alchemist.loader.displacements.Displacement;
-import it.unibo.alchemist.loader.export.Extractor;
-import it.unibo.alchemist.loader.export.FilteringPolicy;
-import it.unibo.alchemist.loader.export.MoleculeReader;
-import it.unibo.alchemist.loader.export.NumberOfNodes;
-import it.unibo.alchemist.loader.export.filters.CommonFilters;
-import it.unibo.alchemist.loader.shapes.Shape;
-import it.unibo.alchemist.loader.variables.ArbitraryVariable;
-import it.unibo.alchemist.loader.variables.DependentVariable;
-import it.unibo.alchemist.loader.variables.JavascriptVariable;
-import it.unibo.alchemist.loader.variables.LinearVariable;
-import it.unibo.alchemist.loader.variables.NumericConstant;
-import it.unibo.alchemist.loader.variables.ScalaVariable;
-import it.unibo.alchemist.loader.variables.Variable;
-import it.unibo.alchemist.model.implementations.environments.Continuous2DEnvironment;
-import it.unibo.alchemist.model.implementations.linkingrules.NoLinks;
-import it.unibo.alchemist.model.implementations.times.DoubleTime;
-import it.unibo.alchemist.model.interfaces.Action;
-import it.unibo.alchemist.model.interfaces.Concentration;
-import it.unibo.alchemist.model.interfaces.Condition;
-import it.unibo.alchemist.model.interfaces.Environment;
-import it.unibo.alchemist.model.interfaces.Incarnation;
-import it.unibo.alchemist.model.interfaces.Layer;
-import it.unibo.alchemist.model.interfaces.LinkingRule;
-import it.unibo.alchemist.model.interfaces.Molecule;
-import it.unibo.alchemist.model.interfaces.Node;
-import it.unibo.alchemist.model.interfaces.Position;
-import it.unibo.alchemist.model.interfaces.Reaction;
-import it.unibo.alchemist.model.interfaces.Time;
-import it.unibo.alchemist.model.interfaces.TimeDistribution;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+import static java.util.ResourceBundle.getBundle;
 
 /**
  * Loads a properly formatted YAML file and provides method for instancing a batch of scenarios.
@@ -690,6 +690,36 @@ public final class YamlLoader implements Loader {
         factory.registerImplicit(Number.class, double.class, Number::doubleValue);
         factory.registerImplicit(double.class, BigDecimal.class, BigDecimal::new);
         factory.registerImplicit(long.class, BigInteger.class, BigInteger::valueOf);
+        /*
+         * Pairs
+         */
+        factory.registerImplicit(List.class, Pair.class, it -> {
+            if (it.size() == 2) {
+                return new Pair<>(it.get(0), it.get(1));
+            }
+            throw new IllegalArgumentException("Only a two argument list can be converted to a Pair. Provided: " + it);
+        });
+        factory.registerImplicit(Pair.class, org.apache.commons.math3.util.Pair.class,
+                it -> new org.apache.commons.math3.util.Pair<>(it.getFirst(), it.getSecond()));
+        factory.registerImplicit(org.apache.commons.math3.util.Pair.class, Pair.class,
+                it -> new Pair<>(it.getFirst(), it.getSecond()));
+        factory.registerImplicit(Pair.class, org.apache.commons.lang3.tuple.Pair.class,
+                it -> new ImmutablePair<>(it.getFirst(), it.getSecond()));
+        factory.registerImplicit(org.apache.commons.lang3.tuple.Pair.class, Pair.class,
+                it -> new Pair<>(it.getLeft(), it.getRight()));
+        /*
+         * Triples
+         */
+        factory.registerImplicit(List.class, Triple.class, it -> {
+            if (it.size() == 3) {
+                return new Triple<>(it.get(0), it.get(1), it.get(2));
+            }
+            throw new IllegalArgumentException("Only a two argument list can be converted to a Pair. Provided: " + it);
+        });
+        factory.registerImplicit(Triple.class, org.apache.commons.lang3.tuple.Triple.class,
+                it -> new org.apache.commons.lang3.tuple.ImmutableTriple<>(it.getFirst(), it.getSecond(), it.getThird()));
+        factory.registerImplicit(org.apache.commons.lang3.tuple.Triple.class, Triple.class,
+                it -> new Triple<>(it.getLeft(), it.getMiddle(), it.getRight()));
         return factory;
     }
 
@@ -743,15 +773,20 @@ public final class YamlLoader implements Loader {
         return new BuilderConfiguration<>(ImmutableMap.of(PARAMETER, Object.class), emptyMap(), factory, m -> supplier.apply(m.get(PARAMETER)));
     }
 
-    private class Builder<T> {
+    private static final class Builder<T> {
         private final @Nonnull Class<? super T> clazz;
         private final @Nonnull Set<BuilderConfiguration<T>> supportedConfigs;
-        Builder(@Nonnull final Class<? super T> clazz, @Nonnull final BuilderConfiguration<T> supportedConfig, final Factory factory) {
+        private Builder(@Nonnull final Class<? super T> clazz,
+                        @Nonnull final BuilderConfiguration<T> supportedConfig,
+                        final Factory factory) {
             this(clazz, ImmutableSet.of(supportedConfig), factory);
         }
 
         @SuppressWarnings(UNCHECKED)
-        Builder(@Nonnull final Class<? super T> clazz, @Nonnull final Set<BuilderConfiguration<T>> supportedConfigs, final Factory factory) {
+        private Builder(
+                @Nonnull final Class<? super T> clazz,
+                @Nonnull final Set<BuilderConfiguration<T>> supportedConfigs,
+                final Factory factory) {
             this.clazz = clazz;
             final String packageRoot = PACKAGE_ROOTS.getOrDefault(clazz, "");
             this.supportedConfigs = Sets.newLinkedHashSet(supportedConfigs);
@@ -762,7 +797,7 @@ public final class YamlLoader implements Loader {
                     m -> {
                         String type = m.get(TYPE).toString();
                         assert type != null;
-                        type = (type.contains(".") ? "" : packageRoot) + type;
+                        type = (type.contains(".") ? "" : packageRoot) + type; // NOPMD UseStringBufferForStringAppends
                         try {
                             final Class<?> actualClass = ResourceLoader.classForName(type);
                             if (clazz.isAssignableFrom(actualClass)) {
@@ -796,12 +831,12 @@ public final class YamlLoader implements Loader {
         }
     }
 
-    private static class BuilderConfiguration<T> {
+    private static final class BuilderConfiguration<T> {
         private final @Nonnull Function<Map<String, Object>, T> buildFunction;
         private final @Nonnull Factory factory;
         private final @Nonnull Map<String, Class<?>> mandatoryFields;
         private final @Nonnull Map<String, Class<?>> optionalFields;
-        BuilderConfiguration(@Nonnull final Map<String, Class<?>> mandatory,
+        private BuilderConfiguration(@Nonnull final Map<String, Class<?>> mandatory,
                 @Nonnull final Map<String, Class<?>> optional,
                 @Nonnull final Factory factory,
                 @Nonnull final Function<Map<String, Object>, T> converter) {

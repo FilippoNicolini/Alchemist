@@ -68,7 +68,7 @@ public final class CellMove<P extends Position<P>> extends AbstractMoveNode<Doub
         return getEnvironment().makePosition(
                 delta * getNode().getPolarizationVersor().getCoordinate(0),
                 delta * getNode().getPolarizationVersor().getCoordinate(1)
-                );
+        );
     }
 
     @Override
@@ -77,10 +77,9 @@ public final class CellMove<P extends Position<P>> extends AbstractMoveNode<Doub
         getNode().setPolarization(getEnvironment().makePosition(0, 0));
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public CellNode<P> getNode() {
-        return ((CellNode<P>) super.getNode());
+        return (CellNode<P>) super.getNode();
     }
 
 }

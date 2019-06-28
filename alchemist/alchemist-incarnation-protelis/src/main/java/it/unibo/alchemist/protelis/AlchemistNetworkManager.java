@@ -5,9 +5,6 @@
  * GNU General Public License, with a linking exception,
  * as described in the file LICENSE in the Alchemist distribution's top directory.
  */
-/**
- * 
- */
 package it.unibo.alchemist.protelis;
 
 import java.io.Serializable;
@@ -19,8 +16,8 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.protelis.lang.datatype.DeviceUID;
+import org.protelis.vm.CodePath;
 import org.protelis.vm.NetworkManager;
-import org.protelis.vm.util.CodePath;
 
 import it.unibo.alchemist.model.implementations.actions.RunProtelisProgram;
 import it.unibo.alchemist.model.implementations.nodes.ProtelisNode;
@@ -173,12 +170,12 @@ public final class AlchemistNetworkManager implements NetworkManager, Serializab
         toBeSent = null;
     }
 
-    private static class MessageInfo implements Serializable {
+    private static final class MessageInfo implements Serializable {
         private static final long serialVersionUID = 1L;
         private final double time;
         private final Map<CodePath, Object> payload;
         private final DeviceUID source;
-        MessageInfo(final double time, final DeviceUID source, final Map<CodePath, Object> payload) {
+        private MessageInfo(final double time, final DeviceUID source, final Map<CodePath, Object> payload) {
             this.time = time;
             this.payload = payload;
             this.source = source;

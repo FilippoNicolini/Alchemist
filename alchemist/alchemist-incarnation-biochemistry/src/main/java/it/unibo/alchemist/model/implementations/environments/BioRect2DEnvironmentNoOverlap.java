@@ -9,15 +9,15 @@ package it.unibo.alchemist.model.implementations.environments;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Comparator;
 import java.util.stream.Stream;
 
+import com.google.common.base.Optional;
 import org.apache.bcel.classfile.ClassFormatException;
 import org.apache.commons.math3.util.FastMath;
 import org.danilopianini.lang.MathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Optional;
 
 import it.unibo.alchemist.model.implementations.positions.Euclidean2DPosition;
 import it.unibo.alchemist.model.interfaces.CellWithCircularArea;
@@ -40,13 +40,13 @@ public final class BioRect2DEnvironmentNoOverlap extends BioRect2DEnvironment im
     private Optional<CircularDeformableCell<Euclidean2DPosition>> biggestCircularDeformableCell = Optional.absent();
 
     /**
-     * Returns an infinite BioRect2DEnviroment.
+     * Returns an infinite {@link BioRect2DEnvironment}.
      */
     public BioRect2DEnvironmentNoOverlap() {
         super();
     }
     /**
-     * Returns a limited rectangular BioRect2DEnviroment.
+     * Returns a limited rectangular {@link BioRect2DEnvironment}.
      * 
      * @param minX rectangle's min x value.
      * @param maxX rectangle's max x value.
@@ -70,9 +70,9 @@ public final class BioRect2DEnvironmentNoOverlap extends BioRect2DEnvironment im
                 final double nodeRadius = thisNode.getRadius();
                 return range <= 0
                         || getNodesWithinRange(p, range).stream()
-                                .filter(n -> n instanceof CellWithCircularArea)
-                                .map(n -> (CellWithCircularArea<Euclidean2DPosition>) n)
-                                .noneMatch(n -> getPosition(n).getDistanceTo(p) < nodeRadius + n.getRadius());
+                            .filter(n -> n instanceof CellWithCircularArea)
+                            .map(n -> (CellWithCircularArea<Euclidean2DPosition>) n)
+                            .noneMatch(n -> getPosition(n).getDistanceTo(p) < nodeRadius + n.getRadius());
             } else {
                 return true;
             }
@@ -108,13 +108,13 @@ public final class BioRect2DEnvironmentNoOverlap extends BioRect2DEnvironment im
             return requestedPos;
         }
         final double distanceToScan = distanceToReq + nodeToMove.getRadius() + (maxDiameter / 2);
-        final double halfDistance = (distanceToScan / 2);
+        final double halfDistance = distanceToScan / 2;
         // compute position of the midpoint between originalPos and a point at distance distanceToScan
-        final double rx = requestedPos.getCoordinate(0);
-        final double ox = originalPos.getCoordinate(0);
+        final double rx = requestedPos.getX();
+        final double ox = originalPos.getX();
         final double xVec = rx - ox;
-        final double ry = requestedPos.getCoordinate(1);
-        final double oy = originalPos.getCoordinate(1);
+        final double ry = requestedPos.getY();
+        final double oy = originalPos.getY();
         final double yVec = ry - oy;
         final double module = FastMath.sqrt(FastMath.pow(xVec, 2) + FastMath.pow(yVec, 2));
         final double xVer = xVec / module;
@@ -143,7 +143,7 @@ public final class BioRect2DEnvironmentNoOverlap extends BioRect2DEnvironment im
                 .map(n -> getPositionIfNodeIsObstacle(nodeToMove, n, originalPos, oy, ox, ry, rx)) 
                 .filter(Optional::isPresent) 
                 .map(Optional::get)
-                .min((p1, p2) -> Double.compare(p1.getDistanceTo(originalPos), p2.getDistanceTo(originalPos)))
+                .min(Comparator.comparingDouble(p -> p.getDistanceTo(originalPos)))
                 .orElse(requestedPos);
     }
 
@@ -154,16 +154,16 @@ public final class BioRect2DEnvironmentNoOverlap extends BioRect2DEnvironment im
             final double xVer, final double yVer) {
         // testing if node is between requested position and original position
         final Euclidean2DPosition nodePos = getPosition(node);
-        final Euclidean2DPosition nodeOrientationFromOrigin = new Euclidean2DPosition(nodePos.getCoordinate(0) - origin.getCoordinate(0), 
-                nodePos.getCoordinate(1) - origin.getCoordinate(1));
-        final double scalarProductResult1 = xVer * nodeOrientationFromOrigin.getCoordinate(0) + yVer * nodeOrientationFromOrigin.getCoordinate(1);
+        final Euclidean2DPosition nodeOrientationFromOrigin = new Euclidean2DPosition(nodePos.getX() - origin.getX(), 
+                nodePos.getY() - origin.getY());
+        final double scalarProductResult1 = xVer * nodeOrientationFromOrigin.getX() + yVer * nodeOrientationFromOrigin.getY();
         // testing if node is near enough to requested position to be an obstacle
         final Euclidean2DPosition oppositeVersor = new Euclidean2DPosition(-xVer, -yVer);
-        final Euclidean2DPosition nodeOrientationFromReq = new Euclidean2DPosition(nodePos.getCoordinate(0) - requestedPos.getCoordinate(0), 
-                nodePos.getCoordinate(1) - requestedPos.getCoordinate(1));
-        final double scalarProductResult2 = oppositeVersor.getCoordinate(0) * nodeOrientationFromReq.getCoordinate(0) + oppositeVersor.getCoordinate(1) * nodeOrientationFromReq.getCoordinate(1);
+        final Euclidean2DPosition nodeOrientationFromReq = new Euclidean2DPosition(nodePos.getX() - requestedPos.getX(), 
+                nodePos.getY() - requestedPos.getY());
+        final double scalarProductResult2 = oppositeVersor.getX() * nodeOrientationFromReq.getX() + oppositeVersor.getY() * nodeOrientationFromReq.getY();
         if (scalarProductResult2 <= 0) {
-            return (nodePos.getDistanceTo(requestedPos) < node.getRadius() + nodeToMove.getRadius())
+            return nodePos.getDistanceTo(requestedPos) < node.getRadius() + nodeToMove.getRadius()
                     && scalarProductResult1 >= 0;
         }
         return scalarProductResult1 >= 0;
@@ -181,8 +181,8 @@ public final class BioRect2DEnvironmentNoOverlap extends BioRect2DEnvironment im
         // original position 
         final Euclidean2DPosition possibleObstaclePosition = getPosition(node);
         // coordinates of original position, requested position and of node's position
-        final double yn = possibleObstaclePosition.getCoordinate(1);
-        final double xn = possibleObstaclePosition.getCoordinate(0);
+        final double yn = possibleObstaclePosition.getY();
+        final double xn = possibleObstaclePosition.getX();
         // cellular range
         final double cellRange = node.getRadius() + nodeToMove.getRadius();
         // compute intersection
@@ -214,16 +214,16 @@ public final class BioRect2DEnvironmentNoOverlap extends BioRect2DEnvironment im
             return Optional.absent();
         }
         // otherwise, compute the maximum practicable distance for the cell
-        final double module =  FastMath.sqrt(FastMath.pow((yIntersect - yo), 2) + FastMath.pow((xIntersect - xo), 2));
+        final double module =  FastMath.sqrt(FastMath.pow(yIntersect - yo, 2) + FastMath.pow(xIntersect - xo, 2));
         if (module == 0) { // if module == 0 the translation is 0, so return originalPos
             return Optional.of(originalPos);
         }
         // compute the versor relative to requested direction of cell movement
-        final double cat2 = FastMath.sqrt((FastMath.pow(cellRange, 2) - FastMath.pow(cat, 2)));
+        final double cat2 = FastMath.sqrt(FastMath.pow(cellRange, 2) - FastMath.pow(cat, 2));
         final double distToSum  = originalPos.getDistanceTo(intersection) - cat2;
         final Euclidean2DPosition versor = new Euclidean2DPosition((xIntersect - xo) / module, (yIntersect - yo) / module);
         // computes vector representing the practicable movement
-        final Euclidean2DPosition vectorToSum = new Euclidean2DPosition(distToSum * (versor.getCoordinate(0)), distToSum * (versor.getCoordinate(1)));
+        final Euclidean2DPosition vectorToSum = new Euclidean2DPosition(distToSum * versor.getX(), distToSum * versor.getY());
         // returns the right position of the cell
         final Euclidean2DPosition result = originalPos.plus(vectorToSum);
         return Optional.of(result);

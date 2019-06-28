@@ -8,20 +8,17 @@
 
 package it.unibo.alchemist.model.implementations.conditions;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import it.unibo.alchemist.model.implementations.molecules.Junction;
 import it.unibo.alchemist.model.interfaces.Environment;
 import it.unibo.alchemist.model.interfaces.CellNode;
 import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Reaction;
 
+import java.util.Collections;
+
 /**
  */
-public class JunctionPresentInCell extends AbstractNeighborCondition<Double> {
+public final class JunctionPresentInCell extends AbstractNeighborCondition<Double> {
 
     private static final long serialVersionUID = 4213307452790768059L;
 
@@ -46,11 +43,6 @@ public class JunctionPresentInCell extends AbstractNeighborCondition<Double> {
     }
 
     @Override
-    public double getPropensityContribution() {
-        return isValid() ? 1 : 0;
-    }
-
-    @Override
     public boolean isValid() {
         return getNode().containsJunction(j);
     }
@@ -61,12 +53,12 @@ public class JunctionPresentInCell extends AbstractNeighborCondition<Double> {
     }
 
     @Override
-    public Map<Node<Double>, Double> getValidNeighbors(final Collection<? extends Node<Double>> neighborhood) {
-        final Set<CellNode<?>> linkedNodes = getNode().getNeighborsLinkWithJunction(j);
-        return neighborhood.stream().filter(n -> linkedNodes.contains(n))
-        .collect(Collectors.<Node<Double>, Node<Double>, Double>toMap(
-                n -> n,
-                n -> 1.0));
+    protected double getNeighborPropensity(final Node<Double> neighbor) {
+        // the neighbor's propensity is computed as the number of junctions it has
+        //noinspection SuspiciousMethodCalls
+        return getNode().getJunctions()
+                .getOrDefault(j, Collections.emptyMap())
+                .getOrDefault(neighbor, 0);
     }
 
     @Override

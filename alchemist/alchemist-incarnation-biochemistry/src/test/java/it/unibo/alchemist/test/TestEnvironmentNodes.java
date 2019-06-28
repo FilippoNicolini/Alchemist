@@ -7,15 +7,6 @@
  */
 package it.unibo.alchemist.test;
 
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.Map;
-
-
-import org.apache.commons.math3.random.MersenneTwister;
-import org.junit.Test;
-import org.kaikikm.threadresloader.ResourceLoader;
-
 import it.unibo.alchemist.core.implementations.Engine;
 import it.unibo.alchemist.core.interfaces.Simulation;
 import it.unibo.alchemist.loader.YamlLoader;
@@ -33,19 +24,31 @@ import it.unibo.alchemist.model.interfaces.Incarnation;
 import it.unibo.alchemist.model.interfaces.Molecule;
 import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Position;
+import org.apache.commons.math3.random.MersenneTwister;
+import org.junit.jupiter.api.Test;
+import org.kaikikm.threadresloader.ResourceLoader;
 
-import static org.junit.Assert.*;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Test implementation of extra-cellular environment  created with EnvironmentNodes.
  *
  */
 
+@SuppressWarnings("ALL")
 public class TestEnvironmentNodes {
 
     private static final double PRECISION = 0.000000000001;
     private static final Incarnation<Double, Euclidean2DPosition> INCARNATION = new BiochemistryIncarnation<>();
-    private static final String CON_A_IN_CELL = "conAInCell = ";
+
     /**
      * test a simple reaction "[A] --> [A in env]".
      */
@@ -194,7 +197,7 @@ public class TestEnvironmentNodes {
         sim.run();
         assertNotEquals(0.0, envNode3.getConcentration(a));
         assertNotEquals(0.0, envNode4.getConcentration(a));
-        assertEquals(total, envNode3.getConcentration(a) + envNode4.getConcentration(a), 0.1);
+        assertEquals(total, envNode3.getConcentration(a) + envNode4.getConcentration(a), PRECISION);
     }
 
     /**
@@ -230,7 +233,7 @@ public class TestEnvironmentNodes {
                 .findFirst()
                 .get()
                 .getConcentration(new Biomolecule("A"));
-        assertEquals("conA = " + conA, conA, 1000, Double.MIN_VALUE);
+        assertEquals(conA, 1000, Double.MIN_VALUE);
     }
 
     /**
@@ -273,7 +276,7 @@ public class TestEnvironmentNodes {
                 .findAny()
                 .get()
                 .getConcentration(new Biomolecule("A"));
-        assertEquals(CON_A_IN_CELL + conAInCell, conAInCell, 1000, PRECISION); 
+        assertEquals(conAInCell, 1000, PRECISION);
         assertEquals(conAInEnv, 0, PRECISION);
     }
 
@@ -295,7 +298,7 @@ public class TestEnvironmentNodes {
                 .findAny()
                 .get()
                 .getConcentration(new Biomolecule("A"));
-        assertTrue(CON_A_IN_CELL + conAInCell + " ; conAInEnv = " + conAInEnv, conAInCell == 0 && conAInEnv == 0);
+        assertTrue(conAInCell == 0 && conAInEnv == 0);
     }
 
     /**
@@ -316,16 +319,16 @@ public class TestEnvironmentNodes {
                 .findAny()
                 .get()
                 .getConcentration(new Biomolecule("A"));
-        assertTrue("conAInEnv1 = " + conAInEnv1 + " ; conAInEnv2 = " + conAInEnv2, conAInEnv1 == 0 && conAInEnv2 == 1000);
+        assertTrue(conAInEnv1 == 0 && conAInEnv2 == 1000);
     }
 
     /**
      * test initialization of a junction between an EnvironmentNode and a CellNode.
      * Now this will throw an UnsupportedOperationException
      */
-    @Test (expected = UnsupportedOperationException.class)
+    @Test
     public void testEnv6() {
-        testNoVar("testEnv6.yml");
+        assertThrows(UnsupportedOperationException.class, () -> testNoVar("testEnv6.yml"));
     }
 
     /**
@@ -347,7 +350,7 @@ public class TestEnvironmentNodes {
                 .sum();
         final double expectedConcInCell = 2000;
         final double expectedCOncInEnv = 0;
-        assertTrue(CON_A_IN_CELL + conAInCell + " ; conAInEnv = " + conAInEnv, conAInCell == expectedConcInCell && conAInEnv == expectedCOncInEnv);
+        assertTrue(conAInCell == expectedConcInCell && conAInEnv == expectedCOncInEnv);
     }
 
     /**
@@ -362,7 +365,7 @@ public class TestEnvironmentNodes {
                 .findAny()
                 .get()
                 .getConcentration(new Biomolecule("A"));
-        assertEquals(CON_A_IN_CELL + conAInCell, conAInCell, 1000, PRECISION);
+        assertEquals(conAInCell, 1000, PRECISION);
     }
 
     private static <T, P extends Position<P>> Environment<T, P> testNoVar(final String resource) {
@@ -371,7 +374,7 @@ public class TestEnvironmentNodes {
 
     private static <T, P extends Position<P>> Environment<T, P> testLoading(final String resource, final Map<String, Double> vars) {
         final InputStream res = ResourceLoader.getResourceAsStream(resource);
-        assertNotNull("Missing test resource " + resource, res);
+        assertNotNull(res);
         final Environment<T, P> env = new YamlLoader(res).getWith(vars);
         final Simulation<?, ?> sim = new Engine<>(env, 10000);
         sim.play();

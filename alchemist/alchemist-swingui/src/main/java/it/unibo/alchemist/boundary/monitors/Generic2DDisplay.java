@@ -7,6 +7,43 @@
  */
 package it.unibo.alchemist.boundary.monitors;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import it.unibo.alchemist.boundary.gui.effects.Effect;
+import it.unibo.alchemist.boundary.interfaces.Graphical2DOutputMonitor;
+import it.unibo.alchemist.boundary.l10n.LocalizedResourceBundle;
+import it.unibo.alchemist.boundary.wormhole.implementation.AngleManagerImpl;
+import it.unibo.alchemist.boundary.wormhole.implementation.ExponentialZoomManager;
+import it.unibo.alchemist.boundary.wormhole.implementation.PointAdapter;
+import it.unibo.alchemist.boundary.wormhole.implementation.PointerSpeedImpl;
+import it.unibo.alchemist.boundary.wormhole.implementation.Wormhole2D;
+import it.unibo.alchemist.boundary.wormhole.interfaces.IWormhole2D;
+import it.unibo.alchemist.boundary.wormhole.interfaces.IWormhole2D.Mode;
+import it.unibo.alchemist.boundary.wormhole.interfaces.PointerSpeed;
+import it.unibo.alchemist.boundary.wormhole.interfaces.ZoomManager;
+import it.unibo.alchemist.core.interfaces.Simulation;
+import it.unibo.alchemist.core.interfaces.Status;
+import it.unibo.alchemist.model.implementations.times.DoubleTime;
+import it.unibo.alchemist.model.interfaces.Environment;
+import it.unibo.alchemist.model.interfaces.Environment2DWithObstacles;
+import it.unibo.alchemist.model.interfaces.Neighborhood;
+import it.unibo.alchemist.model.interfaces.Node;
+import it.unibo.alchemist.model.interfaces.Obstacle2D;
+import it.unibo.alchemist.model.interfaces.Position2D;
+import it.unibo.alchemist.model.interfaces.Reaction;
+import it.unibo.alchemist.model.interfaces.Time;
+import org.apache.commons.math3.util.Pair;
+import org.danilopianini.lang.LangUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.swing.AbstractAction;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.event.MouseInputListener;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -37,44 +74,6 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.swing.AbstractAction;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
-import javax.swing.event.MouseInputListener;
-
-import com.google.common.collect.ImmutableList;
-import org.apache.commons.math3.util.Pair;
-import org.danilopianini.lang.LangUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import it.unibo.alchemist.boundary.gui.effects.Effect;
-import it.unibo.alchemist.boundary.interfaces.Graphical2DOutputMonitor;
-import it.unibo.alchemist.boundary.l10n.LocalizedResourceBundle;
-import it.unibo.alchemist.boundary.wormhole.implementation.AngleManagerImpl;
-import it.unibo.alchemist.boundary.wormhole.implementation.ExponentialZoomManager;
-import it.unibo.alchemist.boundary.wormhole.implementation.PointAdapter;
-import it.unibo.alchemist.boundary.wormhole.implementation.PointerSpeedImpl;
-import it.unibo.alchemist.boundary.wormhole.implementation.Wormhole2D;
-import it.unibo.alchemist.boundary.wormhole.interfaces.IWormhole2D;
-import it.unibo.alchemist.boundary.wormhole.interfaces.IWormhole2D.Mode;
-import it.unibo.alchemist.boundary.wormhole.interfaces.PointerSpeed;
-import it.unibo.alchemist.boundary.wormhole.interfaces.ZoomManager;
-import it.unibo.alchemist.core.interfaces.Simulation;
-import it.unibo.alchemist.core.interfaces.Status;
-import it.unibo.alchemist.model.implementations.times.DoubleTime;
-import it.unibo.alchemist.model.interfaces.Environment;
-import it.unibo.alchemist.model.interfaces.Environment2DWithObstacles;
-import it.unibo.alchemist.model.interfaces.Neighborhood;
-import it.unibo.alchemist.model.interfaces.Node;
-import it.unibo.alchemist.model.interfaces.Obstacle2D;
-import it.unibo.alchemist.model.interfaces.Position2D;
-import it.unibo.alchemist.model.interfaces.Reaction;
-import it.unibo.alchemist.model.interfaces.Time;
-
 /**
  * Abstract base-class for each display able a graphically represent a 2D space
  * and simulation.
@@ -82,6 +81,7 @@ import it.unibo.alchemist.model.interfaces.Time;
  * @param <T>
  * @param <P>
  */
+@SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "This class is not meant to get serialized")
 public class Generic2DDisplay<T, P extends Position2D<P>> extends JPanel implements Graphical2DOutputMonitor<T, P> {
 
     static {
@@ -113,8 +113,8 @@ public class Generic2DDisplay<T, P extends Position2D<P>> extends JPanel impleme
     private List<Effect> effectStack;
     private volatile boolean firstTime = true; 
     private boolean paintLinks;
-    private transient Optional<Node<T>> hooked = Optional.empty();
-    private boolean inited;
+    private Optional<Node<T>> hooked = Optional.empty();
+    private final boolean inited;
     private double lasttime;
     private final Semaphore mapConsistencyMutex = new Semaphore(1);
     private final transient PointerSpeed mouseMovement = new PointerSpeedImpl();
@@ -128,12 +128,12 @@ public class Generic2DDisplay<T, P extends Position2D<P>> extends JPanel impleme
     private long timeInit = System.currentTimeMillis();
     private transient IWormhole2D<P> wormhole;
     private transient ZoomManager zoomManager;
-    private transient boolean isPreviousStateMarking = true;
+    private boolean isPreviousStateMarking = true;
     private ViewStatus status = ViewStatus.VIEW_WITH_MARKER;
-    private transient boolean isDraggingMouse;
-    private transient Optional<Point> originPoint = Optional.empty();
-    private transient Optional<Point> endingPoint = Optional.empty();
-    private transient Set<Node<T>> selectedNodes = new HashSet<>();
+    private boolean isDraggingMouse;
+    private Optional<Point> originPoint = Optional.empty();
+    private Optional<Point> endingPoint = Optional.empty();
+    private Set<Node<T>> selectedNodes = new HashSet<>();
 
     /**
      * Initializes a new display with out redrawing the first step.
@@ -496,8 +496,8 @@ public class Generic2DDisplay<T, P extends Position2D<P>> extends JPanel impleme
 
     /**
      * 
-     * @param x x coord
-     * @param y y coord
+     * @param x x coordination
+     * @param y y coordination
      */
     protected void setMouseTooltipTo(final int x, final int y) {
         if (wormhole != null) {
@@ -689,11 +689,10 @@ public class Generic2DDisplay<T, P extends Position2D<P>> extends JPanel impleme
                             currentEnv.addNode(n, envEnding);
                         }
                         update(currentEnv, engine.getTime());
-                    } catch (RuntimeException exp) {
+                    } catch (RuntimeException exp) { // NOPMD
                         final String title = "Node cloning error";
                         final String message = "One or more of your nodes do not support cloning, the debug information is:\n"
                                 + LangUtils.stackTraceToString(exp);
-                        // TODO: switch to JavaFX alerts
                         JOptionPane.showMessageDialog(Generic2DDisplay.this, message, title, JOptionPane.ERROR_MESSAGE);
                     }
                 });
