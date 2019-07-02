@@ -1,18 +1,10 @@
 package it.unibo.alchemist.model.implementations.actions;
 
-import alice.tuprolog.InvalidTheoryException;
-import alice.tuprolog.Theory;
 import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule;
 import it.unibo.alchemist.model.interfaces.Reaction;
 import it.unibo.alchemist.model.interfaces.Action;
 import it.unibo.alchemist.model.interfaces.Node;
 import org.apache.commons.math3.random.RandomGenerator;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 /**
  * Simple implementation of an agent.

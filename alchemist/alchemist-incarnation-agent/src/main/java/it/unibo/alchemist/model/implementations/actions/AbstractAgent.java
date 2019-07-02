@@ -22,8 +22,6 @@ import kotlin.Triple;
 import org.apache.commons.math3.distribution.LevyDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -455,7 +453,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                 }
             } catch (NoSolutionException e) {
                 throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_SOLUTION_MSG + "intention " + id);
-            } catch (UnknownVarException e ) {
+            } catch (UnknownVarException e) {
                 throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + UNKNOWN_VAR_MSG + "intention " + id);
             }
         }

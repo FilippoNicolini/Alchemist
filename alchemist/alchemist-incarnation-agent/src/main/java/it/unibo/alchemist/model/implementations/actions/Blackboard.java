@@ -1,12 +1,10 @@
 package it.unibo.alchemist.model.implementations.actions;
 
 import alice.tuprolog.Double;
-import alice.tuprolog.InvalidTheoryException;
 import alice.tuprolog.NoSolutionException;
 import alice.tuprolog.SolveInfo;
 import alice.tuprolog.Struct;
 import alice.tuprolog.Term;
-import alice.tuprolog.Theory;
 import alice.tuprolog.Var;
 import alice.tuprolog.UnknownVarException;
 import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule;
@@ -15,12 +13,6 @@ import it.unibo.alchemist.model.interfaces.Node;
 import it.unibo.alchemist.model.interfaces.Position;
 import it.unibo.alchemist.model.interfaces.Reaction;
 import org.apache.commons.math3.random.RandomGenerator;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 /**
  * Implementation of a blackboard for tuple space extension.
