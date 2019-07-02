@@ -20,6 +20,8 @@ import org.apache.commons.math3.random.RandomGenerator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * Implementation of tuple space for Goldminers problem.
@@ -36,14 +38,6 @@ public class Goldmine extends AbstractSpatialTuple {
         super(goldmineName, node, rand);
 
         node.setConcentration(new SimpleMolecule(goldmineName), 0);
-
-        try {
-            this.getEngine().addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + this.getAgentName() + ".pl"))));
-        } catch (IOException e) {
-            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
-        } catch (InvalidTheoryException e) {
-            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
-        }
     }
 
     /**
@@ -154,7 +148,7 @@ public class Goldmine extends AbstractSpatialTuple {
             }
             System.out.println("GOLDMINE" + SEPARATOR + getAgentName() + getNode().getId() + SEPARATOR + "contained nuggets:" + counter);
         } catch (NoMoreSolutionException e) {
-            e.printStackTrace();
+            throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_MORE_SOLUTION_MSG + "nugget.");
         }
         this.getNode().setConcentration(new SimpleMolecule("nugget"), 0);
     }

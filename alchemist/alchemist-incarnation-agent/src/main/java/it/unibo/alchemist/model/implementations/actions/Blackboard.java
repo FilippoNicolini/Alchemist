@@ -19,6 +19,8 @@ import org.apache.commons.math3.random.RandomGenerator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * Implementation of a blackboard for tuple space extension.
@@ -36,14 +38,6 @@ public class Blackboard extends AbstractSpatialTuple {
         super(blackboardName, node, rand);
 
         node.setConcentration(new SimpleMolecule(blackboardName), 0);
-
-        try {
-            this.getEngine().addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + this.getAgentName() + ".pl"))));
-        } catch (IOException e) {
-            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
-        } catch (InvalidTheoryException e) {
-            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
-        }
     }
 
     /**

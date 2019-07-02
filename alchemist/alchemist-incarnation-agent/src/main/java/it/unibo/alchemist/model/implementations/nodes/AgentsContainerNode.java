@@ -232,14 +232,14 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         double minDist = Double.MAX_VALUE;
 
         // For each neighbor node
-        for (Object obj : this.environment.getNeighborhood(this).getNeighbors()) {
+        for (final Object obj : this.environment.getNeighborhood(this).getNeighbors()) {
             final AgentsContainerNode node = (AgentsContainerNode) obj;
             final double currDist = this.environment.getDistanceBetweenNodes(this, node);
             final List<AbstractAgent> containedSpatialTuple = node.getAgentsMap().values()
                     .stream()
                     .filter(a -> AbstractSpatialTuple.class.isAssignableFrom(a.getClass()))
                     .collect(Collectors.toList());
-            if (containedSpatialTuple.size() > 0 && currDist < minDist) {
+            if (!containedSpatialTuple.isEmpty() && currDist < minDist) {
                 minDist = currDist;
                 nearestSpatialTuple = (AbstractSpatialTuple) containedSpatialTuple.get(0);
             }
@@ -254,10 +254,10 @@ public class AgentsContainerNode extends AbstractNode<Object> {
     public List<AbstractSpatialTuple> getSpatialTupleNeighborhood() {
         final List<AbstractSpatialTuple> spatialTupleNeighborhood = new ArrayList<>();
         // For each neighbor node
-        for (Object obj : this.environment.getNeighborhood(this).getNeighbors()) {
+        for (final Object obj : this.environment.getNeighborhood(this).getNeighbors()) {
             ((AgentsContainerNode) obj).getAgentsMap().forEach((strAgentName, agent) -> {
                 if (AbstractSpatialTuple.class.isAssignableFrom(agent.getClass())) {
-                    spatialTupleNeighborhood.add(((AbstractSpatialTuple) agent));
+                    spatialTupleNeighborhood.add((AbstractSpatialTuple) agent);
                 }
             });
         }

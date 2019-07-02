@@ -11,6 +11,8 @@ import org.apache.commons.math3.random.RandomGenerator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * Simple implementation of an agent.
@@ -28,14 +30,6 @@ public class SimpleAgent extends AbstractAgent {
         super(name, node, rand, reaction);
 
         node.setConcentration(new SimpleMolecule(name), 0);
-
-        try {
-            this.getEngine().addTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + this.getAgentName() + ".pl"))));
-        } catch (IOException e) {
-            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
-        } catch (InvalidTheoryException e) {
-            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
-        }
     }
 
     /**

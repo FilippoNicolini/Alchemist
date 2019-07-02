@@ -64,23 +64,23 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
 
     /**
      * Create a SimpleMolecule.
-     * @param s
+     * @param string
      *            the {@link String} to parse
      * @return the molecule created.
      */
     @Override
-    public Molecule createMolecule(final String s) {
-        return new SimpleMolecule(s);
+    public Molecule createMolecule(final String string) {
+        return new SimpleMolecule(string);
     }
 
     /**
      * Create the concentration.
-     * @param s the {@link String} to parse
+     * @param string the {@link String} to parse
      * @return the concentration created.
      */
     @Override
-    public Object createConcentration(final String s) {
-        return s;
+    public Object createConcentration(final String string) {
+        return string;
     }
 
     /**

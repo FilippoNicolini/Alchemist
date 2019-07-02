@@ -25,6 +25,8 @@ import org.apache.commons.math3.random.RandomGenerator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
@@ -127,8 +129,6 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         super(node);
         this.agentName = name;
         this.agentRandomGenerator = rand;
-
-        this.loadAgentLibrary();
     }
 
     /**
@@ -143,8 +143,6 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         this.agentName = name;
         this.agentRandomGenerator = rand;
         this.agentReaction = reaction;
-
-        this.loadAgentLibrary();
     }
 
     /**
@@ -237,7 +235,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
      */
     private void loadAgentLibrary() {
         try {
-            this.engine.setTheory(new Theory(new FileInputStream(new File("alchemist-incarnation-agent/src/main/resources/" + BASE_THEORY + ".pl"))));
+            this.engine.addTheory(new Theory(Files.newInputStream(Paths.get("alchemist-incarnation-agent/src/main/resources/" + BASE_THEORY + ".pl"))));
         } catch (IOException e) {
             throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
         } catch (InvalidTheoryException e) {
@@ -252,12 +250,22 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         } catch (InvalidObjectIdException e) {
             throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + INVALID_OBJECT_MSG);
         }
+
+        try {
+            this.getEngine().addTheory(new Theory(Files.newInputStream(Paths.get("alchemist-incarnation-agent/src/main/resources/" + this.getAgentName() + ".pl"))));
+        } catch (IOException e) {
+            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + IO_MSG);
+        } catch (InvalidTheoryException e) {
+            throw new IllegalArgumentException(this.getAgentName() + SEPARATOR + INVALID_THEORY_MSG);
+        }
     }
 
     /**
      * Initialize the agent theory adding some beliefs into it.
      */
     protected void initializeAgent() {
+        this.loadAgentLibrary();
+
         // Name of the agent
         final Struct self = new Struct("self", Term.createTerm(this.getAgentName()));
 
@@ -389,7 +397,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                     }
                 }
 
-                for (Struct ub : unfoldedBodyList) {
+                for (final Struct ub : unfoldedBodyList) {
                     final SolveInfo solveUB = this.engine.solve(ub);
                     // Generate the random id for the intention
                     final Term id = new alice.tuprolog.Double(this.agentRandomGenerator.nextDouble()); // TODO verificare univocità id
@@ -445,8 +453,10 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                 } else {
                     System.out.println(this.getAgentName() + this.getNode().getId() + SEPARATOR + "esegita intenzione " + execIntention);
                 }
-            } catch (NoSolutionException | UnknownVarException e) {
-                e.printStackTrace();
+            } catch (NoSolutionException e) {
+                throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + NO_SOLUTION_MSG + "intention " + id);
+            } catch (UnknownVarException e ) {
+                throw new IllegalStateException(this.getAgentName() + this.getNode().getId() + SEPARATOR + UNKNOWN_VAR_MSG + "intention " + id);
             }
         }
     }
@@ -667,7 +677,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
             }
 
             // Add remaining distances
-            if (newDistances.size() > 0) {
+            if (!newDistances.isEmpty()) {
                 newDistances.forEach((strAgentName, distance) -> {
                     final Term agentTerm = Term.createTerm(strAgentName);
                     // Add in the theory 'belief(distance(AGENT_NAME, NEW_DISTANCE)).'
@@ -713,7 +723,7 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                     } else { // otherwise, for read and take actions the requests is sent to the neighborhood spatial tuple
                         // Retrieves the spatial tuple neighborhood instances.
                         final List<AbstractSpatialTuple> spatialTupleNeighborhood = getNode().getSpatialTupleNeighborhood();
-                        for (AbstractSpatialTuple spatialTuple: spatialTupleNeighborhood) {
+                        for (final AbstractSpatialTuple spatialTuple: spatialTupleNeighborhood) {
                             spatialTuple.insertRequest(solvedAction.getTerm("T"), this, tt.getSecond());
                         }
                     }
