@@ -21,11 +21,20 @@ public class MovementAgent extends AbstractAgent {
         super(name, node, rand, reaction);
     }
 
+    /**
+     * Clone the action.
+     * @param node the node which the action is referred.
+     * @param reaction the reaction which the action is referred.
+     * @return a new MovementAgent.
+     */
     @Override
     public Action<Object> cloneAction(final Node<Object> node, final Reaction<Object> reaction) {
         return new MovementAgent("cloned_" + getAgentName(), node, this.getAgentRandomGenerator(), reaction);
     }
 
+    /**
+     * Execute the MovementAgent reasoning cycle.
+     */
     @Override
     public void execute() {
         this.getNode().changeNodePosition(this.getAgentReaction().getTau());

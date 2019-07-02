@@ -46,11 +46,20 @@ public class Blackboard extends AbstractSpatialTuple {
         }
     }
 
+    /**
+     * Clone the action.
+     * @param node the node which the action is referred.
+     * @param reaction the reaction which the action is referred.
+     * @return a new Blackboard.
+     */
     @Override
     public Action<Object> cloneAction(final Node<Object> node, final Reaction<Object> reaction) {
         return new Blackboard("cloned_" + this.getAgentName(), node, this.getAgentRandomGenerator());
     }
 
+    /**
+     * Execute the Blackboard reasoning cycle.
+     */
     @Override
     public void execute() {
         if (!this.isInitialized()) {

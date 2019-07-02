@@ -38,11 +38,20 @@ public class SimpleAgent extends AbstractAgent {
         }
     }
 
+    /**
+     * Clone the action.
+     * @param node the node which the action is referred.
+     * @param reaction the reaction which the action is referred.
+     * @return a new SimpleAgent.
+     */
     @Override
     public Action<Object> cloneAction(final Node<Object> node, final Reaction<Object> reaction) {
         return new SimpleAgent("cloned_" + this.getAgentName(), node, this.getAgentRandomGenerator(), reaction);
     }
 
+    /**
+     * Execute the SimpleAgent reasoning cycle.
+     */
     @Override
     public void execute() {
         if (!this.isInitialized()) {

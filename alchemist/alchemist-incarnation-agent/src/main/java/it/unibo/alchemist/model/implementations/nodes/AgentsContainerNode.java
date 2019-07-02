@@ -45,6 +45,10 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         System.out.println("ENVIRONMENT CLASS: " + this.environment.getClass().toString());
     }
 
+    /**
+     * Create a new node.
+     * @return a new instance of AgentsContainerNode.
+     */
     @Override
     protected Object createT() {
         return new AgentsContainerNode(this.param, this.environment, this.randomGenerator);
@@ -210,10 +214,10 @@ public class AgentsContainerNode extends AbstractNode<Object> {
         });
     }
 
-    // TODO eliminare
-    public void test(final String msg) {
-        System.out.println("test: " + msg);
-    }
+//    // TODO eliminare
+//    public void test(final String msg) {
+//        System.out.println("test: " + msg);
+//    }
 
     //*********************************************//
     //**        Spatial Tuples Extension         **//

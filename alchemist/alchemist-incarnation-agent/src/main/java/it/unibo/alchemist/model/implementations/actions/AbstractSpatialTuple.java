@@ -1,6 +1,11 @@
 package it.unibo.alchemist.model.implementations.actions;
 
-import alice.tuprolog.*;
+import alice.tuprolog.NoSolutionException;
+import alice.tuprolog.SolveInfo;
+import alice.tuprolog.Struct;
+import alice.tuprolog.Term;
+import alice.tuprolog.UnknownVarException;
+import alice.tuprolog.Var;
 import it.unibo.alchemist.model.interfaces.Node;
 import org.apache.commons.math3.random.RandomGenerator;
 
@@ -47,6 +52,8 @@ public abstract class AbstractSpatialTuple extends AbstractAgent {
                 case "take":
                     takeFromSpatialTuple(request, false);
                     break;
+                default:
+                    break;
             }
         }
     }
@@ -63,6 +70,8 @@ public abstract class AbstractSpatialTuple extends AbstractAgent {
                     break;
                 case "take":
                     takeFromSpatialTuple(currRequest, true);
+                    break;
+                default:
                     break;
             }
         }

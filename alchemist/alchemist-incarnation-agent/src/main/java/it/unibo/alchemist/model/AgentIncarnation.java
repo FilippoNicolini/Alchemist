@@ -30,28 +30,69 @@ import org.apache.commons.math3.random.RandomGenerator;
 
 /**
  * Class that implement agent incarnation.
+ * @param <P> position
  */
 public class AgentIncarnation<P extends Position<? extends P>> implements Incarnation<Object, P> {
 
-    public final static String POSTMAN_AGENT_NAME = "postman";
-    public final static String BLACKBOARD_AGENT_NAME = "blackboard";
-    public final static String GOLDMINE_AGENT_NAME = "goldmine";
+    /**
+     * Variable to indicate postman agent.
+     */
+    public static final String POSTMAN_AGENT_NAME = "postman";
+    /**
+     * Variable to indicate blackboard agent.
+     */
+    public static final String BLACKBOARD_AGENT_NAME = "blackboard";
+    /**
+     * Variable to indicate goldmine agent.
+     */
+    public static final String GOLDMINE_AGENT_NAME = "goldmine";
 
+    /**
+     * Get the concentration of a molecule.
+     * @param node
+     *            the node
+     * @param mol
+     *            the molecule to analyze
+     * @param prop
+     *            the property to extract
+     * @return double of concentration.
+     */
     @Override
     public double getProperty(final Node<Object> node, final Molecule mol, final String prop) {
         return (double) node.getConcentration(mol);
     }
 
+    /**
+     * Create a SimpleMolecule.
+     * @param s
+     *            the {@link String} to parse
+     * @return the molecule created.
+     */
     @Override
     public Molecule createMolecule(final String s) {
         return new SimpleMolecule(s);
     }
 
+    /**
+     * Create the concentration.
+     * @param s the {@link String} to parse
+     * @return the concentration created.
+     */
     @Override
     public Object createConcentration(final String s) {
         return s;
     }
 
+    /**
+     * Create the node for the agent.
+     * @param rand
+     *            the random engine
+     * @param env
+     *            the environment that will host this object
+     * @param param
+     *            a {@link String} describing the object
+     * @return the node created with the movement reaction
+     */
     @Override
     public Node<Object> createNode(final RandomGenerator rand, final Environment<Object, P> env, final String param) {
         // Create the node
@@ -71,12 +112,38 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
         return node;
     }
 
+    /**
+     * Create time distribution for the reaction.
+     * @param rand
+     *            the random engine
+     * @param env
+     *            the environment that will host this object
+     * @param node
+     *            the node that will host this object
+     * @param param
+     *            a {@link String} describing the object
+     * @return a DiraComb created with the retrieved param
+     */
     @Override
     public TimeDistribution<Object> createTimeDistribution(final RandomGenerator rand, final Environment<Object, P> env, final Node<Object> node, final String param) {
         System.out.println("Nodo: " + node.getId() + " || createTimeDistribution || param: " + param + "\n");
         return new DiracComb<>(Double.parseDouble(param)); // Generates a dirac comb with a value (random or taken from config)
     }
 
+    /**
+     * Create the reaction.
+     * @param rand
+     *            the random engine
+     * @param env
+     *            the environment that will host this object
+     * @param node
+     *            the node that will host this object
+     * @param time
+     *            the time distribution of the reaction
+     * @param param
+     *            a {@link String} describing the object
+     * @return an AgentReaction with a simple condition and the agent action.
+     */
     @Override
     public Reaction<Object> createReaction(final RandomGenerator rand, final Environment<Object, P> env, final Node<Object> node, final TimeDistribution<Object> time, final String param) {
         System.out.println("Nodo: " + node.getId() + " || createReaction || param: " + param + "\n");
@@ -93,6 +160,22 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
         return reaction;
     }
 
+    /**
+     * Create a condition for the reaction.
+     * @param rand
+     *            the random engine
+     * @param env
+     *            the environment that will host this object
+     * @param node
+     *            the node that will host this object
+     * @param time
+     *            the time distribution of the reaction
+     * @param reaction
+     *            the reaction hosting this object
+     * @param param
+     *            a {@link String} describing the object
+     * @return a simple implementation of AbstractCondition
+     */
     @Override
     public Condition<Object> createCondition(final RandomGenerator rand, final Environment<Object, P> env, final Node<Object> node, final TimeDistribution<Object> time, final Reaction<Object> reaction, final String param) {
         System.out.println("Nodo: " + node.getId() + " || createCondition || param: " + param + "\n");
@@ -100,7 +183,7 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
             @Override
             public Context getContext() {
                 // Define the depth of an action and it affects the performances
-                return Context.LOCAL;// TODO va bene come profondità?
+                return Context.LOCAL; // TODO va bene come profondità?
             }
 
             @Override
@@ -115,6 +198,22 @@ public class AgentIncarnation<P extends Position<? extends P>> implements Incarn
         };
     }
 
+    /**
+     * Create the action for the agent.
+     * @param rand
+     *            the random engine
+     * @param env
+     *            the environment that will host this object
+     * @param node
+     *            the node that will host this object
+     * @param time
+     *            the time distribution of the reaction
+     * @param reaction
+     *            the reaction hosting this object
+     * @param param
+     *            a {@link String} describing the object
+     * @return the instance of the class specified in the param.
+     */
     @Override
     public Action<Object> createAction(final RandomGenerator rand, final Environment<Object, P> env, final Node<Object> node, final TimeDistribution<Object> time, final Reaction<Object> reaction, final String param) {
         System.out.println("Nodo: " + node.getId() + " || createAction || param: " + param + "\n");

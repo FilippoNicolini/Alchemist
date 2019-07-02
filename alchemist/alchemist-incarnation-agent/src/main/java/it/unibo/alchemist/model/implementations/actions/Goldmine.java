@@ -1,7 +1,15 @@
 package it.unibo.alchemist.model.implementations.actions;
 
-import alice.tuprolog.*;
 import alice.tuprolog.Double;
+import alice.tuprolog.InvalidTheoryException;
+import alice.tuprolog.NoMoreSolutionException;
+import alice.tuprolog.NoSolutionException;
+import alice.tuprolog.SolveInfo;
+import alice.tuprolog.Struct;
+import alice.tuprolog.Term;
+import alice.tuprolog.Theory;
+import alice.tuprolog.UnknownVarException;
+import alice.tuprolog.Var;
 import it.unibo.alchemist.model.implementations.molecules.SimpleMolecule;
 import it.unibo.alchemist.model.interfaces.Action;
 import it.unibo.alchemist.model.interfaces.Node;
@@ -38,11 +46,20 @@ public class Goldmine extends AbstractSpatialTuple {
         }
     }
 
+    /**
+     * Clone the action.
+     * @param node the node which the action is referred.
+     * @param reaction the reaction which the action is referred.
+     * @return a new Goldmine.
+     */
     @Override
     public Action<Object> cloneAction(final Node<Object> node, final Reaction<Object> reaction) {
         return new Goldmine("cloned_" + this.getAgentName(), node, this.getAgentRandomGenerator());
     }
 
+    /**
+     * Execute the Goldmine reasoning cycle.
+     */
     @Override
     public void execute() {
         if (!this.isInitialized()) {

@@ -21,11 +21,20 @@ public class PostmanAgent extends AbstractAgent {
         super(name, node, rand);
     }
 
+    /**
+     * Clone the action.
+     * @param node the node which the action is referred.
+     * @param reaction the reaction which the action is referred.
+     * @return a new PostmanAgent.
+     */
     @Override
     public Action<Object> cloneAction(final Node<Object> node, final Reaction<Object> reaction) {
         return new PostmanAgent("cloned_" + this.getAgentName(), node, this.getAgentRandomGenerator());
     }
 
+    /**
+     * Execute the PostmanAgent reasoning cycle.
+     */
     @Override
     public void execute() {
         getNode().postman();

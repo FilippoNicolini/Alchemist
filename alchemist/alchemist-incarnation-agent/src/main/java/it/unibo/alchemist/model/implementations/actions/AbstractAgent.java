@@ -39,24 +39,69 @@ import java.util.Queue;
  */
 public abstract class AbstractAgent extends AbstractAction<Object> {
 
-    private final static String BASE_THEORY = "agent_library";
+    private static final String BASE_THEORY = "agent_library";
 
     // Messages
-    protected final static String IO_MSG = "Failed reading agent's theory file.";
-    protected final static String INVALID_THEORY_MSG = "Theory not valid.";
-    protected final static String MALFORMED_GOAL_MSG = "Malformed goal";
-    protected final static String NO_SOLUTION_MSG = "No solution for ";
-    protected final static String UNKNOWN_VAR_MSG = "Error retrieving the term in the solution of ";
-    protected final static String NO_MORE_SOLUTION_MSG = "Error retrieving next solution of ";
-    protected final static String SEPARATOR = " || ";
-    protected final static String NO_IMPLEMENTATION_FOUND = "No implementation found for ";
-    protected final static String INVALID_OBJECT_MSG = "Invalid object to register into tuProlog engine";
-    protected final static String ERR_EXECUTING_INTENTION = "Error executing intention ";
-    protected final static String ERR_INSERTING_INTENTION = "Error inserting intention ";
-    protected final static String SUCCESS_REMOVE_INTENTION = "Intention removed from the intentions stack ";
-    protected final static String FAILED_REMOVE_INTENTION = "Failed removing intention from the intentions stack ";
-    protected final static String INTENTION_NOT_EXISTS = "Agent not contains intention ";
-    protected final static String INTERAL_ACTION_NOT_RECOGNIZED = "Not recognize internal action ";
+    /**
+     * Message for IO.
+     */
+    protected static final String IO_MSG = "Failed reading agent's theory file.";
+    /**
+     * Message for invalid theory.
+     */
+    protected static final String INVALID_THEORY_MSG = "Theory not valid.";
+    /**
+     * Message for malformed goal.
+     */
+    protected static final String MALFORMED_GOAL_MSG = "Malformed goal";
+    /**
+     * Message for no solution in tuProlog.
+     */
+    protected static final String NO_SOLUTION_MSG = "No solution for ";
+    /**
+     * Message for unknown var in tuProlog.
+     */
+    protected static final String UNKNOWN_VAR_MSG = "Error retrieving the term in the solution of ";
+    /**
+     * Message for no more solution in tuProlog.
+     */
+    protected static final String NO_MORE_SOLUTION_MSG = "Error retrieving next solution of ";
+    /**
+     * Separator for the messages.
+     */
+    protected static final String SEPARATOR = " || ";
+    /**
+     * Message for no implementation found on the theory.
+     */
+    protected static final String NO_IMPLEMENTATION_FOUND = "No implementation found for ";
+    /**
+     * Message for invalid object to refer in the theory.
+     */
+    protected static final String INVALID_OBJECT_MSG = "Invalid object to register into tuProlog engine";
+    /**
+     * Message for error executing intention.
+     */
+    protected static final String ERR_EXECUTING_INTENTION = "Error executing intention ";
+    /**
+     * Message for error inserting intention.
+     */
+    protected static final String ERR_INSERTING_INTENTION = "Error inserting intention ";
+    /**
+     * Message for success on removing intention.
+     */
+    protected static final String SUCCESS_REMOVE_INTENTION = "Intention removed from the intentions stack ";
+    /**
+     * Message for fail on removing intention.
+     */
+    protected static final String FAILED_REMOVE_INTENTION = "Failed removing intention from the intentions stack ";
+    /**
+     * Message for error when intention does not exists.
+     */
+    protected static final String INTENTION_NOT_EXISTS = "Agent not contains intention ";
+    /**
+     * Message for error when internal action is not recognized.
+     */
+    protected static final String INTERAL_ACTION_NOT_RECOGNIZED = "Not recognize internal action ";
 
     // List of triple used for the Spatial Tuple extension to reuse code
     private final List<Triple<Struct, String, String>> tripleListForTuples = new ArrayList<>();
@@ -165,11 +210,19 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         return this.agentReaction;
     }
 
+    /**
+     * Get the node of the action.
+     * @return the node.
+     */
     @Override
     public AgentsContainerNode getNode() {
         return (AgentsContainerNode) super.getNode();
     }
 
+    /**
+     * Get the context of the action.
+     * @return the context.
+     */
     @Override
     public Context getContext() {
         return Context.NEIGHBORHOOD; // TODO va bene come profondità?
@@ -217,10 +270,10 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
                     new Struct("write", new Var("T"))), "write", "writeTuple"));
         this.tripleListForTuples.add(new Triple<>(
                 new Struct("retract",
-                    new Struct("read",new Var("T"))), "read", "readTuple"));
+                    new Struct("read", new Var("T"))), "read", "readTuple"));
         this.tripleListForTuples.add(new Triple<>(
                 new Struct("retract",
-                    new Struct("take",new Var("T"))), "take", "takeTuple"));
+                    new Struct("take", new Var("T"))), "take", "takeTuple"));
 
         // Update the initialization flag
         this.setInitialized();
@@ -410,6 +463,10 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         return new Date().getTime();
     }
 
+    /**
+     * Insert the intention id into the stack.
+     * @param intentionID string of the id.
+     */
     public void insertIntention(final String intentionID) {
         // TODO verificare se dalla teoria viene chiamato qui o i long
         System.out.println("Aggiunta intenzione allo stack dalla teoria (String)");
@@ -417,6 +474,10 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         this.intentionsStack.add(intentionID);
     }
 
+    /**
+     * Insert the intention id into the stack.
+     * @param intentionID long of the id.
+     */
     public void insertIntention(final long intentionID) {
         // TODO verificare se dalla teoria viene chiamato qui o le stringhe
         System.out.println("Aggiunta intenzione allo stack dalla teoria (long)");
@@ -444,6 +505,10 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         }
     }
 
+    /**
+     * Overload of removeCompletedIntention with string value.
+     * @param intentionID string of the id.
+     */
     public void removeCompletedIntention(final String intentionID) {
         removeCompletedIntention(Double.parseDouble(intentionID));
     }
@@ -510,10 +575,10 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
         this.outbox.add(new OutMessage(sender, receiver, message));
     }
 
-    // TODO eliminare
-    public void test(final Object msg) {
-        System.out.println("test: " + msg);
-    }
+//    // TODO eliminare
+//    public void test(final Object msg) {
+//        System.out.println("test: " + msg);
+//    }
 
 
     //*********************************************//
@@ -731,14 +796,24 @@ public abstract class AbstractAgent extends AbstractAction<Object> {
             this.payload = payload;
         }
 
+        /**
+         * Get the sender of the message.
+         * @return a term indicating the sender.
+         */
         public Term getSender() {
             return this.sender;
         }
-
+        /**
+         * Get the receiver of the message.
+         * @return a term indicating the receiver.
+         */
         public Term getReceiver() {
             return this.receiver;
         }
-
+        /**
+         * Get the payload of the message.
+         * @return a term indicating the payload.
+         */
         public Term getPayload() {
             return this.payload;
         }
